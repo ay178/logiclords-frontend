@@ -1,0 +1,53 @@
+/* LogicLords — Global Base Styles */
+/* Component-level styles are injected by App.jsx via <style> tag */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #030b1a;
+  color: #dde6f0;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove default button / anchor styles */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Image defaults */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 245, 212, 0.25);
+  color: #dde6f0;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: #020810; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#00f5d4, #3b82f6); border-radius: 4px; }
