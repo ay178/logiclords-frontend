@@ -1004,12 +1004,14 @@ const AddTaskModal = ({ members, projectId, setTasks, close, addToast }) => {
 };
 
 /* ─────────────────── LOGIN MODAL ─────────────────── */
-const LoginModal = ({ close, setAuth, addToast, members }) => {
+
+  const LoginModal = ({ close, setAuth, addToast, members }) => {
   const [creds,setCreds]=useState({email:'',pass:''});
   const [err,setErr]=useState('');
   const [loading,setLoading]=useState(false);
   const [showPass,setShowPass]=useState(false);
- const login=useCallback(async()=>{
+
+  const login=useCallback(async()=>{
     setErr('');
     if(!creds.email||!creds.pass){setErr('Enter both email and password');return;}
     setLoading(true);
@@ -1021,7 +1023,6 @@ const LoginModal = ({ close, setAuth, addToast, members }) => {
       });
       const data = await res.json();
       if(!res.ok) throw new Error(data.error||'Login failed');
-      localStorage.setItem('ll_token', data.token);
       setAuth(data.member);
       addToast(`Welcome, ${data.member.name.split(' ')[0]}!`,'success');
       close();
@@ -1030,16 +1031,7 @@ const LoginModal = ({ close, setAuth, addToast, members }) => {
     }
     setLoading(false);
   },[creds,setAuth,addToast,close]);
-        const admin=members.find(m=>m.isAdmin)||members[0];
-        setAuth({...admin,isAdmin:true});addToast(`Welcome back, ${(admin?.name||'Admin').split(' ')[0]}!`,'success');close();
-      } else {
-        const m=members.find(m=>m.email===creds.email);
-        if(m&&creds.pass==='member123'){setAuth({...m,isAdmin:false});addToast(`Welcome, ${m.name.split(' ')[0]}!`,'success');close();}
-        else{setErr('Invalid credentials. See demo credentials below.');}
-      }
-      setLoading(false);
-    },900);
-  },[creds,members,setAuth,addToast,close]);
+
   return (
     <div className="modal-overlay" onClick={close}>
       <div className="modal" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
@@ -1050,7 +1042,9 @@ const LoginModal = ({ close, setAuth, addToast, members }) => {
         </div>
         {err&&<div style={{background:'rgba(239,68,68,.07)',border:'1px solid rgba(239,68,68,.18)',borderRadius:7,padding:'9px 13px',marginBottom:14,fontSize:12,color:'#f87171'}}>{err}</div>}
         <div style={{display:'flex',flexDirection:'column',gap:13,marginBottom:18}}>
-          <div><label className="label">Email</label><input className="input" type="email" placeholder="admin@logiclords.com" value={creds.email} onChange={e=>setCreds(c=>({...c,email:e.target.value}))}/></div>
+          <div><label className="label">Email</label>
+            <input className="input" type="email" placeholder="tumhari@email.com" value={creds.email} onChange={e=>setCreds(c=>({...c,email:e.target.value}))}/>
+          </div>
           <div><label className="label">Password</label>
             <div style={{position:'relative'}}>
               <input className="input" type={showPass?'text':'password'} placeholder="••••••••" value={creds.pass} onChange={e=>setCreds(c=>({...c,pass:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&login()} style={{paddingRight:40}}/>
@@ -1061,11 +1055,6 @@ const LoginModal = ({ close, setAuth, addToast, members }) => {
         <button onClick={login} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'12px'}} disabled={loading}>
           {loading?<><span className="spin-anim"/>Authenticating…</>:<><LogIn size={13}/>Login</>}
         </button>
-        <div style={{marginTop:14,padding:'12px 14px',background:'rgba(0,245,212,.03)',border:'1px dashed rgba(0,245,212,.12)',borderRadius:8,fontSize:11,color:'#4a6080',lineHeight:1.8}}>
-          <strong style={{color:'#00f5d4',display:'block',marginBottom:3}}>Demo Credentials</strong>
-          <span style={{fontFamily:'Fira Code,monospace'}}>admin@logiclords.com</span> / admin123<br/>
-          <span style={{fontFamily:'Fira Code,monospace'}}>priya@ll.com</span> / member123
-        </div>
       </div>
     </div>
   );
