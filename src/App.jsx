@@ -1009,12 +1009,27 @@ const LoginModal = ({ close, setAuth, addToast, members }) => {
   const [err,setErr]=useState('');
   const [loading,setLoading]=useState(false);
   const [showPass,setShowPass]=useState(false);
-  const login=useCallback(()=>{
+ const login=useCallback(async()=>{
     setErr('');
     if(!creds.email||!creds.pass){setErr('Enter both email and password');return;}
     setLoading(true);
-    setTimeout(()=>{
-      if(creds.email==='admin@logiclords.com'&&creds.pass==='admin123'){
+    try{
+      const res = await fetch('https://logiclords-backend.onrender.com/api/auth/login',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:creds.email,password:creds.pass})
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error||'Login failed');
+      localStorage.setItem('ll_token', data.token);
+      setAuth(data.member);
+      addToast(`Welcome, ${data.member.name.split(' ')[0]}!`,'success');
+      close();
+    }catch(e){
+      setErr(e.message||'Invalid credentials');
+    }
+    setLoading(false);
+  },[creds,setAuth,addToast,close]);
         const admin=members.find(m=>m.isAdmin)||members[0];
         setAuth({...admin,isAdmin:true});addToast(`Welcome back, ${(admin?.name||'Admin').split(' ')[0]}!`,'success');close();
       } else {
