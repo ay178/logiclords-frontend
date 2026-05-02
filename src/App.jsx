@@ -114,43 +114,11 @@ const apiFetch = async (path, options = {}, token = null) => {
 };
 
 /* ─────────────────── SEED DATA (offline fallback) ─────────────────── */
-const SEED_MEMBERS = [
-  {_id:'1',name:'Arjun Sharma',role:'Frontend',email:'admin@logiclords.com',skills:['React','TypeScript','Figma','TailwindCSS'],github:'https://github.com',linkedin:'https://linkedin.com',isAdmin:true,bio:'Frontend lead & UI wizard.'},
-  {_id:'2',name:'Priya Nair',role:'AI/ML',email:'priya@ll.com',skills:['Python','TensorFlow','NLP','PyTorch'],github:'https://github.com',linkedin:'https://linkedin.com',bio:'ML researcher with a soft spot for NLP.'},
-  {_id:'3',name:'Rohan Gupta',role:'Backend',email:'rohan@ll.com',skills:['Node.js','MongoDB','Redis','Docker'],github:'https://github.com',linkedin:'https://linkedin.com',bio:'Backend architect. Cache everything.'},
-  {_id:'4',name:'Sneha Reddy',role:'Designer',email:'sneha@ll.com',skills:['Figma','Adobe XD','Motion Design'],github:'https://github.com',linkedin:'https://linkedin.com',bio:'Design thinker & motion nerd.'},
-  {_id:'5',name:'Dev Patel',role:'DevOps',email:'dev@ll.com',skills:['AWS','Kubernetes','Terraform'],github:'https://github.com',linkedin:'https://linkedin.com',bio:'Infrastructure nerd. Uptime > everything.'},
-  {_id:'6',name:'Kavya Singh',role:'Full Stack',email:'kavya@ll.com',skills:['Next.js','GraphQL','Rust'],github:'https://github.com',linkedin:'https://linkedin.com',bio:'Full-stack polyglot.'},
-];
-const SEED_PROJECTS = [
-  {_id:'p1',title:'AI Resume Parser',description:'NLP-powered resume parsing and job matching.',deadline:'2025-08-01',members:SEED_MEMBERS.slice(0,3),tags:['Python','FastAPI','React','OpenAI'],color:'#00f5d4',taskCount:5,completedTasks:2},
-  {_id:'p2',title:'LogicLords Platform',description:'Team portfolio and project management system.',deadline:'2025-07-15',members:[SEED_MEMBERS[0],SEED_MEMBERS[3],SEED_MEMBERS[5]],tags:['React','Node.js','MongoDB'],color:'#3b82f6',taskCount:4,completedTasks:2},
-  {_id:'p3',title:'Smart Campus IoT',description:'IoT-powered campus management with ML analytics.',deadline:'2025-09-30',members:[SEED_MEMBERS[1],SEED_MEMBERS[2],SEED_MEMBERS[4]],tags:['Flutter','Firebase','ML'],color:'#8b5cf6',taskCount:2,completedTasks:0},
-];
-const SEED_TASKS = [
-  {_id:'t1',pid:'p1',title:'Setup NLP pipeline',description:'spaCy entity extraction',assignee:SEED_MEMBERS[1],status:'done',priority:'high',createdBy:SEED_MEMBERS[0]},
-  {_id:'t2',pid:'p1',title:'Build REST API',description:'FastAPI endpoints for upload/parse',assignee:SEED_MEMBERS[2],status:'done',priority:'high',createdBy:SEED_MEMBERS[0]},
-  {_id:'t3',pid:'p1',title:'React dashboard',description:'Upload wizard & visualization',assignee:SEED_MEMBERS[0],status:'inprogress',priority:'medium',createdBy:SEED_MEMBERS[0]},
-  {_id:'t4',pid:'p1',title:'Job matching algo',description:'Cosine similarity for candidate-job matching',assignee:SEED_MEMBERS[1],status:'inprogress',priority:'critical',createdBy:SEED_MEMBERS[0]},
-  {_id:'t5',pid:'p1',title:'Deploy to AWS',description:'EC2 + S3 + CloudFront',assignee:SEED_MEMBERS[4],status:'todo',priority:'medium',createdBy:SEED_MEMBERS[0]},
-  {_id:'t6',pid:'p2',title:'Hero animations',description:'GSAP landing page',assignee:SEED_MEMBERS[3],status:'done',priority:'low',createdBy:SEED_MEMBERS[0]},
-  {_id:'t7',pid:'p2',title:'Team cards & filters',description:'Member grid with role filter',assignee:SEED_MEMBERS[0],status:'done',priority:'medium',createdBy:SEED_MEMBERS[0]},
-  {_id:'t8',pid:'p2',title:'Kanban board',description:'Drag-and-drop task management',assignee:SEED_MEMBERS[5],status:'inprogress',priority:'high',createdBy:SEED_MEMBERS[0]},
-  {_id:'t9',pid:'p2',title:'JWT auth system',description:'Login, signup, RBAC',assignee:SEED_MEMBERS[2],status:'todo',priority:'critical',createdBy:SEED_MEMBERS[0]},
-  {_id:'t10',pid:'p3',title:'IoT sensor integration',description:'MQTT data ingestion',assignee:SEED_MEMBERS[4],status:'todo',priority:'high',createdBy:SEED_MEMBERS[0]},
-  {_id:'t11',pid:'p3',title:'ML anomaly detection',description:'Time-series model',assignee:SEED_MEMBERS[1],status:'todo',priority:'medium',createdBy:SEED_MEMBERS[0]},
-];
-const ACHIEVEMENTS = [
-  {id:1,year:2025,title:'Smart India Hackathon',sub:'National Finals',desc:'Reached the national finals with our AI-powered campus management system competing against 10,000+ teams.',rank:'Top 5 Nationally',color:'#00f5d4',icon:'🏆'},
-  {id:2,year:2025,title:'HackIndia Grand Finale',sub:'Regional Round',desc:'Won regional round with our AI Resume Parser — beat 200+ teams and secured a spot in the grand finale.',rank:'1st Place 🥇',color:'#fbbf24',icon:'⚡'},
-  {id:3,year:2024,title:'HackBIT 4.0',sub:'NIT Durgapur',desc:'Best Innovative Product award for a fintech solution enabling rural banking access via mobile.',rank:'Best Innovation',color:'#818cf8',icon:'💡'},
-  {id:4,year:2024,title:'DevHacks 2024',sub:'24-Hour Sprint',desc:'Built an AR-based campus navigation app with real-time crowd density heatmaps.',rank:'2nd Place 🥈',color:'#f472b6',icon:'🚀'},
-  {id:5,year:2023,title:'TechFest IIT Mumbai',sub:'Debut Hackathon',desc:'Our very first hackathon — built a mental health support chatbot in 36 hours from scratch.',rank:'Recognition Award',color:'#34d399',icon:'🌱'},
-];
-const SHOWCASE = [
-  {id:'p1',title:'AI Resume Parser & Job Matcher',problem:'Job seekers waste hours tailoring resumes. Recruiters drown in irrelevant applications costing companies millions.',solution:'NLP-powered platform that auto-parses resumes, extracts structured data, scores ATS compatibility, and intelligently matches candidates to jobs.',features:['Smart entity extraction (name, skills, experience)','ATS compatibility scoring','Job-candidate matching with explainable AI','Skill gap analysis & learning recommendations','Multi-format support (PDF, DOCX, LinkedIn)'],tech:['Python','spaCy','FastAPI','React','OpenAI GPT-4','MongoDB','Redis'],future:['Video interview AI analysis','LinkedIn OAuth','Real-time job board scraping'],color:'#00f5d4',img:'🤖'},
-  {id:'p3',title:'Smart Campus IoT System',problem:'Universities waste 30%+ energy and lack real-time data on resource utilization.',solution:'Distributed IoT sensor network with centralized ML-powered analytics dashboard for intelligent campus management.',features:['Real-time space occupancy heatmaps','Predictive energy optimization','Emergency alert & evacuation system','Asset & equipment tracking','Predictive maintenance scheduling'],tech:['Flutter','Firebase','Arduino','Python','TensorFlow','MQTT','Grafana'],future:['AR wayfinding for visitors','Carbon footprint dashboard','Campus ERP integration'],color:'#8b5cf6',img:'🏫'},
-];
+const SEED_MEMBERS = [];
+const SEED_PROJECTS = [];
+const SEED_TASKS = [];
+const ACHIEVEMENTS = [];
+const SHOWCASE = [];
 
 /* ─────────────────── ATOMS ─────────────────── */
 const StyleInjector = () => <style>{STYLES}</style>;
