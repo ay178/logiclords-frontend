@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Github, Linkedin, Search, Plus, X, Check, Trophy, Users, LogIn, LogOut,
-  Shield, Award, CheckCircle, Calendar, Zap, Folder, Rocket,
-  BarChart3, Trash2, Sparkles, Eye, EyeOff, Flag, ChevronUp,
-  ChevronRight, ChevronDown, BarChart2, Layers, Info, Terminal
+  Shield, Award, Calendar, Zap, Folder, Rocket, BarChart3, Trash2,
+  Sparkles, Eye, EyeOff, Flag, ChevronUp, ChevronRight, ChevronDown,
+  BarChart2, Layers, Info, Terminal, GitBranch, ExternalLink, RefreshCw
 } from "lucide-react";
 
 const API_BASE = 'https://logiclords-backend.onrender.com/api';
@@ -78,57 +78,46 @@ const RC = {
   'Full Stack': {bg:'rgba(239,68,68,.15)',   text:'#f87171', border:'rgba(239,68,68,.3)'},
   'Mobile':     {bg:'rgba(168,85,247,.15)',  text:'#c084fc', border:'rgba(168,85,247,.3)'},
 };
-
 const PRIORITY_META = {
-  critical: {color:'#ef4444',label:'Critical'},
-  high:     {color:'#f59e0b',label:'High'},
-  medium:   {color:'#3b82f6',label:'Medium'},
-  low:      {color:'#6b7280',label:'Low'},
+  critical:{color:'#ef4444',label:'Critical'},
+  high:    {color:'#f59e0b',label:'High'},
+  medium:  {color:'#3b82f6',label:'Medium'},
+  low:     {color:'#6b7280',label:'Low'},
 };
-
-const ROLES = ['Frontend','Backend','AI/ML','Designer','DevOps','Full Stack','Mobile'];
-const AVC = ['#6366f1','#ec4899','#f59e0b','#10b981','#00f5d4','#f87171','#8b5cf6','#c084fc'];
+const ROLES  = ['Frontend','Backend','AI/ML','Designer','DevOps','Full Stack','Mobile'];
+const AVC    = ['#6366f1','#ec4899','#f59e0b','#10b981','#00f5d4','#f87171','#8b5cf6','#c084fc'];
 const COLORS = ['#00f5d4','#3b82f6','#8b5cf6','#f472b6','#fbbf24','#f87171','#10b981','#ec4899'];
-const getAC = n => { let h=0; for(let c of n||'?') h=c.charCodeAt(0)+((h<<5)-h); return AVC[Math.abs(h)%AVC.length]; };
-const initls = n => (n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const getAC  = n=>{let h=0;for(let c of n||'?')h=c.charCodeAt(0)+((h<<5)-h);return AVC[Math.abs(h)%AVC.length];};
+const initls = n=>(n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 
-const ACHIEVEMENTS = [
+const ACHIEVEMENTS=[
   {id:1,year:2025,title:'Smart India Hackathon',sub:'National Finals',desc:'Reached the national finals with our AI-powered campus management system.',rank:'Top 5 Nationally',color:'#00f5d4',icon:'🏆'},
   {id:2,year:2025,title:'HackIndia Grand Finale',sub:'Regional Round',desc:'Won regional round with our AI Resume Parser beating 200+ teams.',rank:'1st Place 🥇',color:'#fbbf24',icon:'⚡'},
   {id:3,year:2024,title:'HackBIT 4.0',sub:'NIT Durgapur',desc:'Best Innovative Product for a fintech solution enabling rural banking.',rank:'Best Innovation',color:'#818cf8',icon:'💡'},
-  {id:4,year:2024,title:'DevHacks 2024',sub:'24-Hour Sprint',desc:'Built an AR-based campus navigation app with crowd density heatmaps.',rank:'2nd Place 🥈',color:'#f472b6',icon:'🚀'},
+  {id:4,year:2024,title:'DevHacks 2024',sub:'24-Hour Sprint',desc:'Built an AR campus navigation app with crowd density heatmaps.',rank:'2nd Place 🥈',color:'#f472b6',icon:'🚀'},
   {id:5,year:2023,title:'TechFest IIT Mumbai',sub:'Debut Hackathon',desc:'Built a mental health support chatbot in 36 hours from scratch.',rank:'Recognition Award',color:'#34d399',icon:'🌱'},
 ];
 
-/* ── API helper ── */
-const apiFetch = async (path, options={}) => {
-  const token = localStorage.getItem('ll_token');
-  const headers = { 'Content-Type':'application/json', ...(token && {Authorization:`Bearer ${token}`}), ...options.headers };
-  const res = await fetch(`${API_BASE}${path}`, {...options, headers});
-  const data = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+/* ── API ── */
+const apiFetch=async(path,options={})=>{
+  const token=localStorage.getItem('ll_token');
+  const headers={'Content-Type':'application/json',...(token&&{Authorization:`Bearer ${token}`}),...options.headers};
+  const res=await fetch(`${API_BASE}${path}`,{...options,headers});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||`HTTP ${res.status}`);
   return data;
 };
 
 /* ── Atoms ── */
-const Av = ({ name='?', size=44, src=null }) => {
-  const c = getAC(name);
-  if (src) return <img src={src} alt={name} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
+const Av=({name='?',size=44,src=null})=>{
+  const c=getAC(name);
+  if(src)return <img src={src} alt={name} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
   return <div style={{width:size,height:size,borderRadius:'50%',background:`${c}16`,border:`2px solid ${c}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.33,fontWeight:700,color:c,fontFamily:'Orbitron,monospace',flexShrink:0,letterSpacing:'-1px'}}>{initls(name)}</div>;
 };
-
-const RoleBadge = ({ role }) => {
-  const c = RC[role]||{bg:'rgba(100,116,139,.15)',text:'#94a3b8',border:'rgba(100,116,139,.3)'};
-  return <span className="tag" style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`}}>{role}</span>;
-};
-
-const Chip = ({ label }) => <span style={{background:'rgba(0,245,212,.06)',border:'1px solid rgba(0,245,212,.15)',color:'#6b87a8',padding:'2px 8px',borderRadius:4,fontSize:10,fontFamily:'Fira Code,monospace'}}>{label}</span>;
-
-const PBar = ({ value=0, color='#00f5d4' }) => (
-  <div className="progress-bg"><div className="progress-fill" style={{width:`${Math.min(100,Math.max(0,value))}%`,background:`linear-gradient(90deg,${color},#3b82f6)`}}/></div>
-);
-
-const SecHead = ({ pre, title, sub, center=true }) => (
+const RoleBadge=({role})=>{const c=RC[role]||{bg:'rgba(100,116,139,.15)',text:'#94a3b8',border:'rgba(100,116,139,.3)'};return <span className="tag" style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`}}>{role}</span>;};
+const Chip=({label})=><span style={{background:'rgba(0,245,212,.06)',border:'1px solid rgba(0,245,212,.15)',color:'#6b87a8',padding:'2px 8px',borderRadius:4,fontSize:10,fontFamily:'Fira Code,monospace'}}>{label}</span>;
+const PBar=({value=0,color='#00f5d4'})=><div className="progress-bg"><div className="progress-fill" style={{width:`${Math.min(100,Math.max(0,value))}%`,background:`linear-gradient(90deg,${color},#3b82f6)`}}/></div>;
+const SecHead=({pre,title,sub,center=true})=>(
   <div style={{textAlign:center?'center':'left',marginBottom:48}}>
     <div style={{fontFamily:'Fira Code,monospace',fontSize:11,color:'#00f5d4',letterSpacing:4,textTransform:'uppercase',marginBottom:10}}>{'// '}{pre}</div>
     <h2 style={{fontFamily:'Orbitron,monospace',fontWeight:900,fontSize:'clamp(24px,4vw,40px)',color:'#dde6f0',letterSpacing:-1}}>{title}</h2>
@@ -136,17 +125,16 @@ const SecHead = ({ pre, title, sub, center=true }) => (
     <div style={{width:54,height:3,background:'linear-gradient(90deg,#00f5d4,#3b82f6)',margin:center?'14px auto 0':'14px 0 0',borderRadius:999}}/>
   </div>
 );
-
-const Spinner = () => <div style={{minHeight:'50vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:40,height:40,borderRadius:'50%',border:'3px solid rgba(0,245,212,.2)',borderTopColor:'#00f5d4',animation:'spin .8s linear infinite'}}/></div>;
+const Spinner=()=><div style={{minHeight:'50vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:40,height:40,borderRadius:'50%',border:'3px solid rgba(0,245,212,.2)',borderTopColor:'#00f5d4',animation:'spin .8s linear infinite'}}/></div>;
 
 /* ── Toast ── */
-const ToastCtx = ({ toasts, remove }) => (
+const ToastCtx=({toasts,remove})=>(
   <div style={{position:'fixed',bottom:28,right:28,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
     {toasts.map(t=>{
-      const colors={success:['#00f5d4','rgba(0,245,212,.2)'],error:['#f87171','rgba(239,68,68,.2)'],info:['#fbbf24','rgba(251,191,36,.15)']};
-      const [tc,bc]=colors[t.type]||colors.info;
+      const cols={success:['#00f5d4','rgba(0,245,212,.2)'],error:['#f87171','rgba(239,68,68,.2)'],info:['#fbbf24','rgba(251,191,36,.15)']};
+      const [tc,bc]=cols[t.type]||cols.info;
       const Icon=t.type==='success'?Check:t.type==='error'?X:Info;
-      return (
+      return(
         <div key={t.id} className="toast" style={{border:`1px solid ${bc}`}}>
           <div style={{width:26,height:26,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,background:`${tc}12`,color:tc}}><Icon size={12}/></div>
           <span style={{fontSize:13,color:'#dde6f0',flex:1}}>{t.msg}</span>
@@ -158,11 +146,11 @@ const ToastCtx = ({ toasts, remove }) => (
 );
 
 /* ── Nav ── */
-const Nav = ({ page, setPage, auth, setAuth, setShowLogin }) => {
+const Nav=({page,setPage,auth,setAuth,setShowLogin})=>{
   const [scrolled,setScrolled]=useState(false);
   useEffect(()=>{const fn=()=>setScrolled(window.scrollY>8);window.addEventListener('scroll',fn);return()=>window.removeEventListener('scroll',fn);},[]);
   const links=[{id:'home',label:'Home'},{id:'team',label:'Team'},{id:'register',label:'Register'},{id:'achievements',label:'Achievements'},{id:'projects',label:'Projects'},{id:'management',label:'Portal 🧠'}];
-  return (
+  return(
     <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:500,background:scrolled?'rgba(3,11,26,.96)':'transparent',backdropFilter:scrolled?'blur(20px)':'none',borderBottom:scrolled?'1px solid rgba(255,255,255,.05)':'none',transition:'all .3s'}}>
       <div style={{maxWidth:1300,margin:'0 auto',height:62,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px'}}>
         <div onClick={()=>setPage('home')} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
@@ -173,7 +161,7 @@ const Nav = ({ page, setPage, auth, setAuth, setShowLogin }) => {
           {links.map(l=><button key={l.id} className={`nav-link${page===l.id?' active':''}`} onClick={()=>setPage(l.id)}>{l.label}</button>)}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          {auth ? (
+          {auth?(
             <>
               <div className="hide-mobile" style={{display:'flex',alignItems:'center',gap:8}}>
                 <Av name={auth.name} size={26}/>
@@ -184,7 +172,7 @@ const Nav = ({ page, setPage, auth, setAuth, setShowLogin }) => {
               </div>
               <button onClick={()=>{localStorage.removeItem('ll_token');setAuth(null);}} className="btn-sm" style={{background:'transparent',borderColor:'rgba(248,113,113,.25)',color:'#f87171'}}><LogOut size={10}/></button>
             </>
-          ) : (
+          ):(
             <button onClick={()=>setShowLogin(true)} className="btn-primary" style={{padding:'8px 16px',fontSize:11}}><LogIn size={12}/>Login</button>
           )}
         </div>
@@ -194,14 +182,14 @@ const Nav = ({ page, setPage, auth, setAuth, setShowLogin }) => {
 };
 
 /* ── Home ── */
-const HomePage = ({ setPage, members, projects }) => {
+const HomePage=({setPage,members,projects})=>{
   const stats=[
     {label:'Team Members',value:members.length,icon:<Users size={16}/>,color:'#00f5d4'},
     {label:'Active Projects',value:projects.length,icon:<Folder size={16}/>,color:'#3b82f6'},
     {label:'Hackathons Won',value:2,icon:<Trophy size={16}/>,color:'#fbbf24'},
     {label:'Lines of Code',value:'50K+',icon:<Terminal size={16}/>,color:'#8b5cf6'},
   ];
-  return (
+  return(
     <div>
       <div className="grid-bg" style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden',padding:'120px 24px 80px',background:'radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,245,212,.07),transparent 60%)'}}>
         <div className="hero-scan"/>
@@ -210,9 +198,7 @@ const HomePage = ({ setPage, members, projects }) => {
             <Sparkles size={11} color="#00f5d4"/>
             <span style={{fontSize:10,color:'#00f5d4',fontFamily:'Fira Code,monospace',letterSpacing:2.5}}>HACKATHON TEAM · INDIA · EST. 2023</span>
           </div>
-          <h1 className="glitch-text" style={{fontFamily:'Orbitron,monospace',fontWeight:900,fontSize:'clamp(52px,9vw,108px)',lineHeight:.95,letterSpacing:-3,color:'#00f5d4',textShadow:'0 0 80px rgba(0,245,212,.35)',marginBottom:4}}>
-            Logic<span style={{color:'#dde6f0'}}>Lords</span>
-          </h1>
+          <h1 className="glitch-text" style={{fontFamily:'Orbitron,monospace',fontWeight:900,fontSize:'clamp(52px,9vw,108px)',lineHeight:.95,letterSpacing:-3,color:'#00f5d4',textShadow:'0 0 80px rgba(0,245,212,.35)',marginBottom:4}}>Logic<span style={{color:'#dde6f0'}}>Lords</span></h1>
           <div style={{fontFamily:'Fira Code,monospace',fontSize:'clamp(12px,1.8vw,16px)',color:'rgba(0,245,212,.55)',letterSpacing:5,marginBottom:28,textTransform:'uppercase'}}>Where Logic Meets Innovation</div>
           <p style={{fontSize:'clamp(14px,1.7vw,17px)',color:'#6b87a8',maxWidth:560,margin:'0 auto 44px',lineHeight:1.85}}>An elite hackathon team driven by curiosity and caffeine. We build AI-powered solutions to real-world problems.</p>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:48}}>
@@ -251,20 +237,20 @@ const HomePage = ({ setPage, members, projects }) => {
 };
 
 /* ── Team ── */
-const TeamPage = ({ members, loading }) => {
+const TeamPage=({members,loading})=>{
   const [q,setQ]=useState('');
   const [role,setRole]=useState('All');
   const [selected,setSelected]=useState(null);
   const filtered=members.filter(m=>(role==='All'||m.role===role)&&(m.name||'').toLowerCase().includes(q.toLowerCase()));
-  if(loading) return <div style={{paddingTop:100}}><Spinner/></div>;
-  return (
+  if(loading)return <div style={{paddingTop:100}}><Spinner/></div>;
+  return(
     <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
       <div style={{maxWidth:1200,margin:'0 auto',padding:'0 24px'}}>
         <SecHead pre="the builders" title="Our Team" center={false}/>
         <div style={{display:'flex',gap:12,marginBottom:28,flexWrap:'wrap'}}>
           <div style={{position:'relative',flex:'1 1 240px',maxWidth:320}}>
             <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/>
-            <input className="input" placeholder="Search by name..." style={{paddingLeft:34}} value={q} onChange={e=>setQ(e.target.value)}/>
+            <input className="input" placeholder="Search..." style={{paddingLeft:34}} value={q} onChange={e=>setQ(e.target.value)}/>
           </div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
             {['All',...ROLES].map(r=>(
@@ -274,9 +260,9 @@ const TeamPage = ({ members, loading }) => {
             ))}
           </div>
         </div>
-        {filtered.length===0 ? (
+        {filtered.length===0?(
           <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}><Users size={32} style={{marginBottom:12,opacity:.25}}/><p>Koi member nahi mila.</p></div>
-        ) : (
+        ):(
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(285px,1fr))',gap:16}}>
             {filtered.map((m,i)=>(
               <div key={m._id||m.id} className="member-card fade-up" style={{animationDelay:`${i*.07}s`,cursor:'pointer'}} onClick={()=>setSelected(m)}>
@@ -307,16 +293,10 @@ const TeamPage = ({ members, loading }) => {
             <button onClick={()=>setSelected(null)} style={{position:'absolute',top:16,right:16,background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={18}/></button>
             <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
               <Av name={selected.name} size={64} src={selected.avatar}/>
-              <div>
-                <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:18,color:'#dde6f0',marginBottom:6}}>{selected.name}</div>
-                <RoleBadge role={selected.role}/>
-              </div>
+              <div><div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:18,color:'#dde6f0',marginBottom:6}}>{selected.name}</div><RoleBadge role={selected.role}/></div>
             </div>
             {selected.bio&&<p style={{fontSize:13,color:'#8a9bb8',lineHeight:1.75,marginBottom:18,background:'rgba(0,245,212,.03)',border:'1px solid rgba(0,245,212,.08)',borderRadius:8,padding:'12px 14px'}}>{selected.bio}</p>}
-            <div style={{marginBottom:18}}>
-              <label className="label">Skills</label>
-              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{(selected.skills||[]).map(s=><Chip key={s} label={s}/>)}</div>
-            </div>
+            <div style={{marginBottom:18}}><label className="label">Skills</label><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{(selected.skills||[]).map(s=><Chip key={s} label={s}/>)}</div></div>
             <div style={{display:'flex',gap:10}}>
               {selected.github&&<a href={selected.github} target="_blank" rel="noreferrer" className="btn-outline" style={{flex:1,justifyContent:'center',padding:'9px',fontSize:11}}><Github size={13}/>GitHub</a>}
               {selected.linkedin&&<a href={selected.linkedin} target="_blank" rel="noreferrer" className="btn-primary" style={{flex:1,justifyContent:'center',padding:'9px',fontSize:11}}><Linkedin size={13}/>LinkedIn</a>}
@@ -329,7 +309,7 @@ const TeamPage = ({ members, loading }) => {
 };
 
 /* ── Register ── */
-const RegisterPage = ({ refreshMembers, addToast }) => {
+const RegisterPage=({refreshMembers,addToast})=>{
   const [form,setForm]=useState({name:'',email:'',role:'Frontend',skills:'',github:'',linkedin:'',bio:'',password:''});
   const [loading,setLoading]=useState(false);
   const [done,setDone]=useState(null);
@@ -341,25 +321,23 @@ const RegisterPage = ({ refreshMembers, addToast }) => {
     try{
       const data=await apiFetch('/auth/signup',{method:'POST',body:JSON.stringify({name:form.name.trim(),email:form.email.trim(),password:form.password,role:form.role,skills:form.skills.split(',').map(s=>s.trim()).filter(Boolean),github:form.github,linkedin:form.linkedin,bio:form.bio.trim()})});
       if(data.token)localStorage.setItem('ll_token',data.token);
-      setDone(data.member);
-      addToast(`Welcome, ${data.member.name.split(' ')[0]}! 🎉`,'success');
-      refreshMembers();
+      setDone(data.member);addToast(`Welcome, ${data.member.name.split(' ')[0]}! 🎉`,'success');refreshMembers();
     }catch(e){addToast(e.message||'Registration failed','error');}
     setLoading(false);
   },[form,addToast,refreshMembers]);
-  return (
+  return(
     <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
       <div style={{maxWidth:620,margin:'0 auto',padding:'0 24px'}}>
         <SecHead pre="join the team" title="Register" sub="Apni details bharo — turant Team page pe dikh jaoge!"/>
         <div className="card" style={{padding:'34px 30px',border:'1px solid rgba(0,245,212,.1)'}}>
-          {done ? (
+          {done?(
             <div style={{textAlign:'center',padding:'32px 0'}}>
               <div className="float-anim" style={{fontSize:56,marginBottom:18}}>🎉</div>
               <div style={{fontFamily:'Orbitron,monospace',fontSize:20,fontWeight:700,color:'#00f5d4',marginBottom:10}}>Welcome, {done.name.split(' ')[0]}!</div>
-              <p style={{color:'#6b87a8',fontSize:14,marginBottom:24}}>Tumhara profile Team page pe live hai!</p>
+              <p style={{color:'#6b87a8',fontSize:14,marginBottom:24}}>Tumhara profile live hai!</p>
               <button onClick={()=>setDone(null)} className="btn-outline" style={{padding:'9px 20px',fontSize:11}}><Plus size={12}/>Aur Register Karo</button>
             </div>
-          ) : (
+          ):(
             <div style={{display:'flex',flexDirection:'column',gap:18}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}} className="stack-sm">
                 <div><label className="label">Full Name *</label><input className="input" placeholder="Tumhara Naam" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
@@ -378,13 +356,13 @@ const RegisterPage = ({ refreshMembers, addToast }) => {
                   </select>
                 </div>
               </div>
-              <div><label className="label">Skills (comma-separated)</label><input className="input" placeholder="React, Node.js, Python..." value={form.skills} onChange={e=>setForm(f=>({...f,skills:e.target.value}))}/></div>
-              <div><label className="label">Bio</label><textarea className="input" rows={2} placeholder="Apne baare mein kuch likho..." value={form.bio} onChange={e=>setForm(f=>({...f,bio:e.target.value}))} style={{resize:'vertical'}}/></div>
+              <div><label className="label">Skills</label><input className="input" placeholder="React, Node.js, Python..." value={form.skills} onChange={e=>setForm(f=>({...f,skills:e.target.value}))}/></div>
+              <div><label className="label">Bio</label><textarea className="input" rows={2} placeholder="Apne baare mein..." value={form.bio} onChange={e=>setForm(f=>({...f,bio:e.target.value}))} style={{resize:'vertical'}}/></div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}} className="stack-sm">
-                <div><label className="label">GitHub URL</label><div style={{position:'relative'}}><Github size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/><input className="input" style={{paddingLeft:32}} placeholder="github.com/you" value={form.github} onChange={e=>setForm(f=>({...f,github:e.target.value}))}/></div></div>
-                <div><label className="label">LinkedIn URL</label><div style={{position:'relative'}}><Linkedin size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/><input className="input" style={{paddingLeft:32}} placeholder="linkedin.com/in/you" value={form.linkedin} onChange={e=>setForm(f=>({...f,linkedin:e.target.value}))}/></div></div>
+                <div><label className="label">GitHub</label><div style={{position:'relative'}}><Github size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/><input className="input" style={{paddingLeft:32}} placeholder="github.com/you" value={form.github} onChange={e=>setForm(f=>({...f,github:e.target.value}))}/></div></div>
+                <div><label className="label">LinkedIn</label><div style={{position:'relative'}}><Linkedin size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/><input className="input" style={{paddingLeft:32}} placeholder="linkedin.com/in/you" value={form.linkedin} onChange={e=>setForm(f=>({...f,linkedin:e.target.value}))}/></div></div>
               </div>
-              <button onClick={submit} className="btn-primary" style={{justifyContent:'center',padding:'13px',marginTop:4}} disabled={loading}>
+              <button onClick={submit} className="btn-primary" style={{justifyContent:'center',padding:'13px'}} disabled={loading}>
                 {loading?<><span className="spin-anim"/>Registering...</>:<><Plus size={14}/>Join LogicLords</>}
               </button>
             </div>
@@ -396,7 +374,7 @@ const RegisterPage = ({ refreshMembers, addToast }) => {
 };
 
 /* ── Achievements ── */
-const AchievementsPage = () => (
+const AchievementsPage=()=>(
   <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
     <div style={{maxWidth:1060,margin:'0 auto',padding:'0 24px'}}>
       <SecHead pre="our journey" title="Achievements"/>
@@ -406,11 +384,8 @@ const AchievementsPage = () => (
           <div key={a.id} className="fade-up" style={{animationDelay:`${i*.11}s`,marginBottom:28,position:'relative'}}>
             <div style={{position:'absolute',left:-34,top:22,width:14,height:14,borderRadius:'50%',background:a.color,border:'3px solid #030b1a',boxShadow:`0 0 14px ${a.color}55`,zIndex:1}}/>
             <div className="card" style={{padding:22}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:10,marginBottom:10}}>
-                <div>
-                  <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:4}}>{a.year} · {a.sub}</div>
-                  <div style={{fontWeight:700,fontSize:16,color:'#dde6f0'}}>{a.icon} {a.title}</div>
-                </div>
+              <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:10,marginBottom:10}}>
+                <div><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:4}}>{a.year} · {a.sub}</div><div style={{fontWeight:700,fontSize:16,color:'#dde6f0'}}>{a.icon} {a.title}</div></div>
                 <span className="tag" style={{background:`${a.color}12`,color:a.color,border:`1px solid ${a.color}28`,fontSize:10}}>{a.rank}</span>
               </div>
               <p style={{color:'#6b87a8',fontSize:13,lineHeight:1.7}}>{a.desc}</p>
@@ -422,64 +397,38 @@ const AchievementsPage = () => (
   </div>
 );
 
-/* ── Projects Showcase ── */
-const ProjectsPage = ({ projects, loading }) => {
+/* ── Projects ── */
+const ProjectsPage=({projects,loading})=>{
   const [sel,setSel]=useState(0);
-  if(loading) return <div style={{paddingTop:100}}><Spinner/></div>;
-  if(projects.length===0) return (
+  if(loading)return <div style={{paddingTop:100}}><Spinner/></div>;
+  if(projects.length===0)return(
     <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
       <div style={{maxWidth:1100,margin:'0 auto',padding:'0 24px'}}>
         <SecHead pre="what we build" title="Project Showcase"/>
-        <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}><Folder size={40} style={{marginBottom:14,opacity:.22}}/><p>Abhi koi project nahi hai. Portal mein jaake banao!</p></div>
+        <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}><Folder size={40} style={{marginBottom:14,opacity:.22}}/><p>Abhi koi project nahi. Portal mein jaake banao!</p></div>
       </div>
     </div>
   );
   const p=projects[Math.min(sel,projects.length-1)];
-  return (
+  return(
     <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
       <div style={{maxWidth:1100,margin:'0 auto',padding:'0 24px'}}>
         <SecHead pre="what we build" title="Project Showcase"/>
         <div style={{display:'flex',gap:10,marginBottom:34,flexWrap:'wrap'}}>
           {projects.map((s,i)=>(
-            <button key={s._id||i} onClick={()=>setSel(i)} className="btn-sm" style={{background:sel===i?`${s.color||'#00f5d4'}12`:'transparent',borderColor:sel===i?`${s.color||'#00f5d4'}45`:'rgba(255,255,255,.07)',color:sel===i?s.color||'#00f5d4':'#6b87a8',padding:'9px 18px',fontSize:12}}>
-              {s.title}
-            </button>
+            <button key={s._id||i} onClick={()=>setSel(i)} className="btn-sm" style={{background:sel===i?`${s.color||'#00f5d4'}12`:'transparent',borderColor:sel===i?`${s.color||'#00f5d4'}45`:'rgba(255,255,255,.07)',color:sel===i?s.color||'#00f5d4':'#6b87a8',padding:'9px 18px',fontSize:12}}>{s.title}</button>
           ))}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
           <div className="card" style={{padding:28}}>
             <h3 style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:17,color:'#dde6f0',marginBottom:16}}>{p.title}</h3>
-            <div style={{marginBottom:18}}>
-              <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:8}}>// DESCRIPTION</div>
-              <p style={{fontSize:13,color:'#6b87a8',lineHeight:1.75}}>{p.description||'Koi description nahi.'}</p>
-            </div>
-            {p.problem&&<div>
-              <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:8}}>// PROBLEM</div>
-              <p style={{fontSize:13,color:'#6b87a8',lineHeight:1.75}}>{p.problem}</p>
-            </div>}
+            <div style={{marginBottom:18}}><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:8}}>// DESCRIPTION</div><p style={{fontSize:13,color:'#6b87a8',lineHeight:1.75}}>{p.description||'Koi description nahi.'}</p></div>
+            {p.problem&&<div><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:8}}>// PROBLEM</div><p style={{fontSize:13,color:'#6b87a8',lineHeight:1.75}}>{p.problem}</p></div>}
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:16}}>
-            <div className="card" style={{padding:22}}>
-              <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:14}}>// TECH STACK</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-                {(p.tags||[]).map(t=><span key={t} style={{background:`${p.color||'#00f5d4'}0e`,border:`1px solid ${p.color||'#00f5d4'}22`,color:p.color||'#00f5d4',padding:'4px 10px',borderRadius:5,fontSize:11,fontFamily:'Fira Code,monospace'}}>{t}</span>)}
-              </div>
-            </div>
-            <div className="card" style={{padding:22}}>
-              <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:14}}>// TEAM MEMBERS</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                {(p.members||[]).map(m=>(
-                  <div key={m._id||m.id} style={{display:'flex',alignItems:'center',gap:6}}>
-                    <Av name={m.name} size={24} src={m.avatar}/>
-                    <span style={{fontSize:12,color:'#dde6f0'}}>{m.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="card" style={{padding:22}}>
-              <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:10}}>// DEADLINE</div>
-              <div style={{display:'flex',alignItems:'center',gap:8}}><Calendar size={14} color="#4a6080"/><span style={{fontSize:13,color:'#dde6f0'}}>{p.deadline?new Date(p.deadline).toLocaleDateString('en-IN'):'TBD'}</span></div>
-            </div>
+            <div className="card" style={{padding:22}}><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:p.color||'#00f5d4',letterSpacing:2,marginBottom:14}}>// TECH STACK</div><div style={{display:'flex',flexWrap:'wrap',gap:7}}>{(p.tags||[]).map(t=><span key={t} style={{background:`${p.color||'#00f5d4'}0e`,border:`1px solid ${p.color||'#00f5d4'}22`,color:p.color||'#00f5d4',padding:'4px 10px',borderRadius:5,fontSize:11,fontFamily:'Fira Code,monospace'}}>{t}</span>)}</div></div>
+            <div className="card" style={{padding:22}}><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:14}}>// TEAM</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{(p.members||[]).map(m=><div key={m._id||m.id} style={{display:'flex',alignItems:'center',gap:6}}><Av name={m.name} size={24} src={m.avatar}/><span style={{fontSize:12,color:'#dde6f0'}}>{m.name}</span></div>)}</div></div>
+            <div className="card" style={{padding:22}}><div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#4a6080',letterSpacing:2,marginBottom:10}}>// DEADLINE</div><div style={{display:'flex',alignItems:'center',gap:8}}><Calendar size={14} color="#4a6080"/><span style={{fontSize:13,color:'#dde6f0'}}>{p.deadline?new Date(p.deadline).toLocaleDateString('en-IN'):'TBD'}</span></div></div>
           </div>
         </div>
       </div>
@@ -487,8 +436,210 @@ const ProjectsPage = ({ projects, loading }) => {
   );
 };
 
-/* ── Management ── */
-const ManagementPage = ({ projects, setProjects, tasks, setTasks, members, auth, addToast }) => {
+/* ══════════════════════════════════════════════════
+   GITHUB VIEW COMPONENT
+══════════════════════════════════════════════════ */
+const GitHubView=({auth,addToast,members})=>{
+  const [repoInput,setRepoInput]=useState('');
+  const [repo,setRepo]=useState('');
+  const [branches,setBranches]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [filter,setFilter]=useState('all');
+
+  const STATUS_META={
+    'available':  {color:'#6b7280',label:'Available',  bg:'rgba(107,114,128,.12)'},
+    'in-progress':{color:'#fbbf24',label:'In Progress',bg:'rgba(251,191,36,.12)'},
+    'merged':     {color:'#10b981',label:'Merged',     bg:'rgba(16,185,129,.12)'},
+  };
+
+  const fetchBranches=async(r)=>{
+    if(!r.trim())return;
+    setLoading(true);
+    try{
+      let repoPath=r.trim();
+      if(repoPath.includes('github.com'))repoPath=repoPath.split('github.com/')[1]?.replace('.git','')?.replace(/\/$/,'');
+      const data=await apiFetch(`/github/branches?repo=${repoPath}`);
+      setBranches(data.branches||[]);
+      setRepo(repoPath);
+      addToast(`${data.branches.length} branches mili!`,'success');
+    }catch(e){addToast(e.message||'Branches fetch nahi hui','error');}
+    setLoading(false);
+  };
+
+  const assignBranch=async(branchName)=>{
+    if(!auth){addToast('Login karo pehle','error');return;}
+    try{
+      await apiFetch('/github/assign',{method:'POST',body:JSON.stringify({repoUrl:repo,branchName,status:'in-progress'})});
+      addToast(`"${branchName}" tumhare naam ho gayi!`,'success');
+      fetchBranches(repo);
+    }catch(e){addToast(e.message,'error');}
+  };
+
+  const unassignBranch=async(branchName)=>{
+    try{
+      await apiFetch('/github/unassign',{method:'DELETE',body:JSON.stringify({repoUrl:repo,branchName})});
+      addToast('Branch release ho gayi','info');
+      fetchBranches(repo);
+    }catch(e){addToast(e.message,'error');}
+  };
+
+  const updateStatus=async(branchName,status)=>{
+    if(status==='available'){unassignBranch(branchName);return;}
+    try{
+      await apiFetch('/github/status',{method:'PATCH',body:JSON.stringify({repoUrl:repo,branchName,status})});
+      fetchBranches(repo);
+    }catch(e){addToast(e.message,'error');}
+  };
+
+  const filtered=branches.filter(b=>filter==='all'||b.status===filter);
+
+  return(
+    <div>
+      {/* Repo Input */}
+      <div className="card" style={{padding:22,marginBottom:20}}>
+        <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:2,marginBottom:14}}>// GITHUB REPO ADD KARO</div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+          <div style={{position:'relative',flex:'1 1 300px'}}>
+            <Github size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/>
+            <input className="input" style={{paddingLeft:34}} placeholder="github.com/username/repo  ya  username/repo" value={repoInput} onChange={e=>setRepoInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&fetchBranches(repoInput)}/>
+          </div>
+          <button onClick={()=>fetchBranches(repoInput)} className="btn-primary" disabled={loading} style={{padding:'11px 20px',fontSize:11}}>
+            {loading?<><span className="spin-anim"/>Loading...</>:<><Search size={12}/>Branches Fetch Karo</>}
+          </button>
+        </div>
+        {repo&&(
+          <div style={{marginTop:12,display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:11,color:'#4a6080',fontFamily:'Fira Code,monospace'}}>Repo:</span>
+            <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#00f5d4',fontFamily:'Fira Code,monospace',display:'flex',alignItems:'center',gap:4}}>
+              github.com/{repo} <ExternalLink size={10}/>
+            </a>
+          </div>
+        )}
+      </div>
+
+      {branches.length>0&&(
+        <>
+          {/* Stats bar */}
+          <div style={{display:'flex',gap:12,marginBottom:18,flexWrap:'wrap',alignItems:'center'}}>
+            {Object.entries(STATUS_META).map(([key,val])=>{
+              const count=branches.filter(b=>b.status===key).length;
+              return(
+                <div key={key} style={{background:val.bg,border:`1px solid ${val.color}25`,borderRadius:8,padding:'10px 18px',display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{width:7,height:7,borderRadius:'50%',background:val.color}}/>
+                  <span style={{fontSize:12,color:val.color,fontWeight:600}}>{val.label}</span>
+                  <span style={{fontSize:16,fontWeight:700,color:'#dde6f0',fontFamily:'Orbitron,monospace'}}>{count}</span>
+                </div>
+              );
+            })}
+            <button onClick={()=>fetchBranches(repo)} style={{background:'transparent',border:'1px solid rgba(255,255,255,.07)',borderRadius:8,padding:'10px 14px',cursor:'pointer',color:'#6b87a8',display:'flex',alignItems:'center',gap:5,fontSize:11,fontFamily:'Outfit,sans-serif'}}><RefreshCw size={11}/>Refresh</button>
+          </div>
+
+          {/* Filter buttons */}
+          <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
+            {[{id:'all',label:`All (${branches.length})`},...Object.entries(STATUS_META).map(([k,v])=>({id:k,label:v.label}))].map(f=>(
+              <button key={f.id} onClick={()=>setFilter(f.id)} className="btn-sm" style={{background:filter===f.id?'rgba(0,245,212,.1)':'transparent',borderColor:filter===f.id?'rgba(0,245,212,.45)':'rgba(255,255,255,.07)',color:filter===f.id?'#00f5d4':'#6b87a8'}}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Branch cards */}
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {filtered.map(branch=>{
+              const sm=STATUS_META[branch.status]||STATUS_META.available;
+              const isMyBranch=auth&&branch.assignedTo&&(branch.assignedTo._id===auth._id||branch.assignedTo._id===auth._id||String(branch.assignedTo._id)===String(auth._id));
+              const isMain=['main','master','develop'].includes(branch.name);
+              return(
+                <div key={branch.name} className="card" style={{padding:18,borderColor:isMyBranch?'rgba(0,245,212,.3)':'rgba(255,255,255,.07)',background:isMyBranch?'rgba(0,245,212,.03)':'rgba(8,18,38,.8)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+                    {/* Left */}
+                    <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:200}}>
+                      <div style={{width:36,height:36,borderRadius:9,background:isMyBranch?'rgba(0,245,212,.12)':'rgba(0,245,212,.06)',border:`1px solid ${isMyBranch?'rgba(0,245,212,.3)':'rgba(0,245,212,.12)'}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <GitBranch size={16} color={isMyBranch?'#00f5d4':'#4a6080'}/>
+                      </div>
+                      <div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,flexWrap:'wrap'}}>
+                          <span style={{fontSize:13,fontWeight:700,color:'#dde6f0',fontFamily:'Fira Code,monospace'}}>{branch.name}</span>
+                          {isMain&&<span className="tag" style={{background:'rgba(59,130,246,.12)',color:'#3b82f6',border:'1px solid rgba(59,130,246,.25)',fontSize:9}}>DEFAULT</span>}
+                          {isMyBranch&&<span className="tag" style={{background:'rgba(0,245,212,.1)',color:'#00f5d4',border:'1px solid rgba(0,245,212,.25)',fontSize:9}}>★ MERI BRANCH</span>}
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                          <span style={{fontSize:10,color:sm.color,background:sm.bg,padding:'2px 8px',borderRadius:4,fontWeight:600}}>{sm.label}</span>
+                          {branch.assignedTo&&(
+                            <div style={{display:'flex',alignItems:'center',gap:5}}>
+                              <Av name={branch.assignedTo.name} size={16} src={branch.assignedTo.avatar}/>
+                              <span style={{fontSize:11,color:'#6b87a8'}}>{branch.assignedTo.name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right - Actions */}
+                    <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                      {/* Status dropdown (only if my branch) */}
+                      {isMyBranch&&(
+                        <select value={branch.status} onChange={e=>updateStatus(branch.name,e.target.value)} style={{background:'rgba(4,10,28,.9)',border:'1px solid rgba(255,255,255,.1)',color:'#dde6f0',padding:'7px 10px',borderRadius:7,fontSize:11,fontFamily:'Outfit,sans-serif',cursor:'pointer',outline:'none'}}>
+                          <option value="in-progress">🟡 In Progress</option>
+                          <option value="merged">🟢 Merged</option>
+                          <option value="available">⚪ Release Karo</option>
+                        </select>
+                      )}
+
+                      {/* Assign / Release button */}
+                      {auth&&!isMain&&(
+                        isMyBranch?(
+                          <button onClick={()=>unassignBranch(branch.name)} className="btn-sm" style={{background:'rgba(239,68,68,.08)',borderColor:'rgba(239,68,68,.25)',color:'#f87171'}}>
+                            <X size={10}/>Release
+                          </button>
+                        ):branch.assignedTo?(
+                          <span style={{fontSize:11,color:'#4a6080',padding:'6px 10px',fontStyle:'italic'}}>Busy hai</span>
+                        ):(
+                          <button onClick={()=>assignBranch(branch.name)} className="btn-sm" style={{background:'rgba(0,245,212,.08)',borderColor:'rgba(0,245,212,.3)',color:'#00f5d4'}}>
+                            <Check size={10}/>Apne Naam Karo
+                          </button>
+                        )
+                      )}
+
+                      {/* Open on GitHub */}
+                      <a href={branch.url} target="_blank" rel="noreferrer" className="btn-sm" style={{background:'transparent',borderColor:'rgba(255,255,255,.1)',color:'#6b87a8',textDecoration:'none'}}>
+                        <Github size={11}/>Open
+                      </a>
+
+                      {/* Compare with main */}
+                      {!isMain&&(
+                        <a href={branch.compareUrl} target="_blank" rel="noreferrer" className="btn-sm" style={{background:'transparent',borderColor:'rgba(139,92,246,.25)',color:'#c084fc',textDecoration:'none'}}>
+                          <GitBranch size={11}/>Compare
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Empty states */}
+      {!loading&&repo&&branches.length===0&&(
+        <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}><GitBranch size={32} style={{marginBottom:12,opacity:.25}}/><p>Koi branch nahi mili.</p></div>
+      )}
+      {!repo&&(
+        <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}>
+          <Github size={40} style={{marginBottom:14,opacity:.2}}/>
+          <p style={{fontSize:14,marginBottom:8}}>Upar apna GitHub repo URL daalo</p>
+          <p style={{fontSize:12,opacity:.6}}>Example: github.com/logiclords/college-erp</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════
+   MANAGEMENT PAGE (with GitHub tab)
+══════════════════════════════════════════════════ */
+const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast})=>{
   const [selPid,setSelPid]=useState(null);
   const [view,setView]=useState('kanban');
   const [showAddProj,setShowAddProj]=useState(false);
@@ -502,6 +653,7 @@ const ManagementPage = ({ projects, setProjects, tasks, setTasks, members, auth,
   const inp=pTasks.filter(t=>t.status==='inprogress');
   const done=pTasks.filter(t=>t.status==='done');
   const pct=pTasks.length?Math.round((done.length/pTasks.length)*100):0;
+
   const cycleStatus=async(task)=>{
     if(!auth){addToast('Login karo pehle','error');return;}
     const next={todo:'inprogress',inprogress:'done',done:'todo'}[task.status];
@@ -510,6 +662,7 @@ const ManagementPage = ({ projects, setProjects, tasks, setTasks, members, auth,
     try{await apiFetch(`/tasks/${tid}/status`,{method:'PATCH',body:JSON.stringify({status:next})});}
     catch(e){addToast('Update failed','error');}
   };
+
   const deleteProj=async(id)=>{
     try{
       await apiFetch(`/projects/${id}`,{method:'DELETE'});
@@ -520,138 +673,163 @@ const ManagementPage = ({ projects, setProjects, tasks, setTasks, members, auth,
     }catch(e){addToast('Delete failed','error');}
     setDelPid(null);
   };
+
   const COLS=[
     {key:'todo',label:'To Do',tasks:todo,color:'#6366f1'},
     {key:'inprogress',label:'In Progress',tasks:inp,color:'#fbbf24'},
     {key:'done',label:'Completed',tasks:done,color:'#10b981'},
   ];
-  return (
+
+  /* View toggle tabs — 3 tabs: Kanban, Analytics, GitHub */
+  const VIEW_TABS=[
+    {id:'kanban',   icon:<Layers size={12}/>,   label:'Kanban'},
+    {id:'analytics',icon:<BarChart2 size={12}/>, label:'Analytics'},
+    {id:'github',   icon:<GitBranch size={12}/>, label:'GitHub 🌿'},
+  ];
+
+  return(
     <div style={{paddingTop:100,paddingBottom:80,minHeight:'100vh'}}>
       <div style={{maxWidth:1340,margin:'0 auto',padding:'0 24px'}}>
+        {/* Header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:32,flexWrap:'wrap',gap:14}}>
           <div>
             <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:4,marginBottom:8,textTransform:'uppercase'}}>// project portal</div>
             <h2 style={{fontFamily:'Orbitron,monospace',fontWeight:900,fontSize:'clamp(20px,3vw,32px)',color:'#dde6f0',letterSpacing:-1}}>Management Dashboard</h2>
           </div>
           <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}}>
+            {/* View toggle */}
             <div style={{display:'flex',background:'rgba(4,10,28,.8)',border:'1px solid rgba(255,255,255,.07)',borderRadius:8,overflow:'hidden'}}>
-              {[{id:'kanban',icon:<Layers size={12}/>,label:'Kanban'},{id:'analytics',icon:<BarChart2 size={12}/>,label:'Analytics'}].map(v=>(
+              {VIEW_TABS.map(v=>(
                 <button key={v.id} onClick={()=>setView(v.id)} style={{padding:'8px 14px',background:view===v.id?'rgba(0,245,212,.1)':'transparent',border:'none',cursor:'pointer',color:view===v.id?'#00f5d4':'#6b87a8',fontFamily:'Outfit,sans-serif',fontSize:11,fontWeight:600,display:'flex',alignItems:'center',gap:5,transition:'all .2s'}}>
                   {v.icon}{v.label}
                 </button>
               ))}
             </div>
-            {auth&&<><button onClick={()=>setShowAddProj(true)} className="btn-primary" style={{padding:'8px 16px',fontSize:11}}><Plus size={12}/>New Project</button>{proj&&<button onClick={()=>setShowAddTask(true)} className="btn-outline" style={{padding:'8px 16px',fontSize:11}}><Plus size={12}/>Add Task</button>}</>}
+            {auth&&view!=='github'&&<><button onClick={()=>setShowAddProj(true)} className="btn-primary" style={{padding:'8px 16px',fontSize:11}}><Plus size={12}/>New Project</button>{proj&&<button onClick={()=>setShowAddTask(true)} className="btn-outline" style={{padding:'8px 16px',fontSize:11}}><Plus size={12}/>Add Task</button>}</>}
             {!auth&&<div style={{background:'rgba(251,191,36,.07)',border:'1px solid rgba(251,191,36,.18)',borderRadius:7,padding:'8px 14px',display:'flex',alignItems:'center',gap:7}}><Shield size={12} color="#fbbf24"/><span style={{fontSize:11,color:'#fbbf24'}}>Login karo manage karne ke liye</span></div>}
           </div>
         </div>
-        <div style={{display:'flex',gap:8,marginBottom:22,flexWrap:'wrap'}}>
-          {projects.map(p=>{
-            const pid2=p._id||p.id;const isSel=selPid===pid2;
-            const ptasks=tasks.filter(t=>t.pid===pid2||t.project===pid2);
-            const ppct=ptasks.length?Math.round((ptasks.filter(t=>t.status==='done').length/ptasks.length)*100):0;
-            return (
-              <button key={pid2} onClick={()=>setSelPid(pid2)} style={{padding:'9px 16px',borderRadius:9,cursor:'pointer',border:`1px solid ${isSel?p.color+'55':'rgba(255,255,255,.07)'}`,background:isSel?`${p.color}0f`:'transparent',color:isSel?p.color:'#6b87a8',fontFamily:'Outfit,sans-serif',fontSize:12,fontWeight:600,display:'flex',alignItems:'center',gap:8,transition:'all .2s'}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:p.color,flexShrink:0}}/>
-                {p.title}
-                <span style={{fontSize:10,opacity:.7,fontFamily:'Fira Code,monospace'}}>{ppct}%</span>
-                {auth?.isAdmin&&isSel&&<span onClick={e=>{e.stopPropagation();setDelPid(pid2)}} style={{marginLeft:2,color:'rgba(248,113,113,.45)',cursor:'pointer',display:'flex'}} onMouseEnter={e=>e.currentTarget.style.color='#f87171'} onMouseLeave={e=>e.currentTarget.style.color='rgba(248,113,113,.45)'}><Trash2 size={10}/></span>}
-              </button>
-            );
-          })}
-          {projects.length===0&&<span style={{fontSize:13,color:'#4a6080'}}>{auth?'Koi project nahi - banao!':'Login karo projects dekhne ke liye.'}</span>}
-        </div>
-        {proj?(
+
+        {/* GitHub tab — full width, no project needed */}
+        {view==='github' ? (
+          <GitHubView auth={auth} addToast={addToast} members={members}/>
+        ) : (
           <>
-            <div className="card" style={{padding:22,marginBottom:20,borderColor:`${proj.color}22`}}>
-              <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:16,marginBottom:14}}>
-                <div style={{flex:1,minWidth:200}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}><span style={{width:10,height:10,borderRadius:'50%',background:proj.color,boxShadow:`0 0 10px ${proj.color}`}}/><h3 style={{fontWeight:700,fontSize:16,color:'#dde6f0'}}>{proj.title}</h3></div>
-                  <p style={{fontSize:12,color:'#6b87a8',lineHeight:1.6}}>{proj.description}</p>
-                </div>
-                <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
-                  {[{val:`${pct}%`,label:'COMPLETE',color:proj.color},{val:pTasks.length,label:'TASKS',color:'#dde6f0'},{val:done.length,label:'DONE',color:'#10b981'}].map((s,i)=>(
-                    <div key={i} style={{textAlign:'center'}}><div style={{fontFamily:'Orbitron,monospace',fontSize:22,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div><div style={{fontSize:9,color:'#4a6080',letterSpacing:1.5,marginTop:4}}>{s.label}</div></div>
-                  ))}
-                </div>
-              </div>
-              <PBar value={pct} color={proj.color}/>
-              <div style={{marginTop:12,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-                {(proj.tags||[]).map(t=><span key={t} style={{background:`${proj.color}0d`,border:`1px solid ${proj.color}22`,color:proj.color,padding:'2px 9px',borderRadius:4,fontSize:10,fontFamily:'Fira Code,monospace'}}>{t}</span>)}
-                <span style={{marginLeft:'auto',fontSize:11,color:'#4a6080',display:'flex',alignItems:'center',gap:4}}><Calendar size={11}/>{proj.deadline?new Date(proj.deadline).toLocaleDateString('en-IN'):'TBD'}</span>
-              </div>
+            {/* Project tabs */}
+            <div style={{display:'flex',gap:8,marginBottom:22,flexWrap:'wrap'}}>
+              {projects.map(p=>{
+                const pid2=p._id||p.id;const isSel=selPid===pid2;
+                const ptasks=tasks.filter(t=>t.pid===pid2||t.project===pid2);
+                const ppct=ptasks.length?Math.round((ptasks.filter(t=>t.status==='done').length/ptasks.length)*100):0;
+                return(
+                  <button key={pid2} onClick={()=>setSelPid(pid2)} style={{padding:'9px 16px',borderRadius:9,cursor:'pointer',border:`1px solid ${isSel?p.color+'55':'rgba(255,255,255,.07)'}`,background:isSel?`${p.color}0f`:'transparent',color:isSel?p.color:'#6b87a8',fontFamily:'Outfit,sans-serif',fontSize:12,fontWeight:600,display:'flex',alignItems:'center',gap:8,transition:'all .2s'}}>
+                    <span style={{width:7,height:7,borderRadius:'50%',background:p.color,flexShrink:0}}/>
+                    {p.title}
+                    <span style={{fontSize:10,opacity:.7,fontFamily:'Fira Code,monospace'}}>{ppct}%</span>
+                    {auth?.isAdmin&&isSel&&<span onClick={e=>{e.stopPropagation();setDelPid(pid2)}} style={{marginLeft:2,color:'rgba(248,113,113,.45)',cursor:'pointer',display:'flex'}} onMouseEnter={e=>e.currentTarget.style.color='#f87171'} onMouseLeave={e=>e.currentTarget.style.color='rgba(248,113,113,.45)'}><Trash2 size={10}/></span>}
+                  </button>
+                );
+              })}
+              {projects.length===0&&<span style={{fontSize:13,color:'#4a6080'}}>{auth?'Koi project nahi - banao!':'Login karo.'}</span>}
             </div>
-            {view==='kanban'?(
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
-                {COLS.map(col=>(
-                  <div key={col.key} className="kanban-col">
-                    <div style={{padding:'13px 15px',borderBottom:`2px solid ${col.color}`,background:`${col.color}07`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{width:7,height:7,borderRadius:'50%',background:col.color,boxShadow:`0 0 8px ${col.color}`}}/><span style={{fontSize:11,fontWeight:700,color:col.color,letterSpacing:1,textTransform:'uppercase'}}>{col.label}</span></div>
-                      <span style={{background:`${col.color}15`,color:col.color,padding:'1px 8px',borderRadius:999,fontSize:11,fontWeight:700}}>{col.tasks.length}</span>
+
+            {proj?(
+              <>
+                {/* Project header */}
+                <div className="card" style={{padding:22,marginBottom:20,borderColor:`${proj.color}22`}}>
+                  <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:16,marginBottom:14}}>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}><span style={{width:10,height:10,borderRadius:'50%',background:proj.color,boxShadow:`0 0 10px ${proj.color}`}}/><h3 style={{fontWeight:700,fontSize:16,color:'#dde6f0'}}>{proj.title}</h3></div>
+                      <p style={{fontSize:12,color:'#6b87a8',lineHeight:1.6}}>{proj.description}</p>
                     </div>
-                    <div className="kanban-drop-zone">
-                      {col.tasks.map(task=>{
-                        const assignee=task.assignee&&typeof task.assignee==='object'?task.assignee:members.find(m=>(m._id||m.id)===task.assignee);
-                        const pm=PRIORITY_META[task.priority||'medium'];
-                        return (
-                          <div key={task._id||task.id} className={`task-card priority-${task.priority||'medium'}`} onClick={()=>cycleStatus(task)}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}}>
-                              <div style={{fontSize:12,fontWeight:600,color:'#dde6f0',lineHeight:1.35,flex:1,marginRight:8}}>{task.title}</div>
-                              <span style={{background:`${pm.color}14`,color:pm.color,padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,flexShrink:0}}>{pm.label}</span>
-                            </div>
-                            {task.description&&<div style={{fontSize:11,color:'#4a6080',marginBottom:9,lineHeight:1.5}}>{task.description}</div>}
-                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                              {assignee?<div style={{display:'flex',alignItems:'center',gap:6}}><Av name={assignee.name} size={18} src={assignee.avatar}/><span style={{fontSize:10,color:'#6b87a8'}}>{(assignee.name||'').split(' ')[0]}</span></div>:<span style={{fontSize:10,color:'rgba(74,96,128,.5)'}}>Unassigned</span>}
-                              {auth&&<span style={{fontSize:9,color:`${col.color}60`,fontFamily:'Fira Code,monospace'}}>click</span>}
+                    <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
+                      {[{val:`${pct}%`,label:'COMPLETE',color:proj.color},{val:pTasks.length,label:'TASKS',color:'#dde6f0'},{val:done.length,label:'DONE',color:'#10b981'}].map((s,i)=>(
+                        <div key={i} style={{textAlign:'center'}}><div style={{fontFamily:'Orbitron,monospace',fontSize:22,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div><div style={{fontSize:9,color:'#4a6080',letterSpacing:1.5,marginTop:4}}>{s.label}</div></div>
+                      ))}
+                    </div>
+                  </div>
+                  <PBar value={pct} color={proj.color}/>
+                  <div style={{marginTop:12,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+                    {(proj.tags||[]).map(t=><span key={t} style={{background:`${proj.color}0d`,border:`1px solid ${proj.color}22`,color:proj.color,padding:'2px 9px',borderRadius:4,fontSize:10,fontFamily:'Fira Code,monospace'}}>{t}</span>)}
+                    <span style={{marginLeft:'auto',fontSize:11,color:'#4a6080',display:'flex',alignItems:'center',gap:4}}><Calendar size={11}/>{proj.deadline?new Date(proj.deadline).toLocaleDateString('en-IN'):'TBD'}</span>
+                  </div>
+                </div>
+
+                {/* Kanban / Analytics */}
+                {view==='kanban'?(
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+                    {COLS.map(col=>(
+                      <div key={col.key} className="kanban-col">
+                        <div style={{padding:'13px 15px',borderBottom:`2px solid ${col.color}`,background:`${col.color}07`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{width:7,height:7,borderRadius:'50%',background:col.color,boxShadow:`0 0 8px ${col.color}`}}/><span style={{fontSize:11,fontWeight:700,color:col.color,letterSpacing:1,textTransform:'uppercase'}}>{col.label}</span></div>
+                          <span style={{background:`${col.color}15`,color:col.color,padding:'1px 8px',borderRadius:999,fontSize:11,fontWeight:700}}>{col.tasks.length}</span>
+                        </div>
+                        <div className="kanban-drop-zone">
+                          {col.tasks.map(task=>{
+                            const assignee=task.assignee&&typeof task.assignee==='object'?task.assignee:members.find(m=>(m._id||m.id)===task.assignee);
+                            const pm=PRIORITY_META[task.priority||'medium'];
+                            return(
+                              <div key={task._id||task.id} className={`task-card priority-${task.priority||'medium'}`} onClick={()=>cycleStatus(task)}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:5}}>
+                                  <div style={{fontSize:12,fontWeight:600,color:'#dde6f0',lineHeight:1.35,flex:1,marginRight:8}}>{task.title}</div>
+                                  <span style={{background:`${pm.color}14`,color:pm.color,padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,flexShrink:0}}>{pm.label}</span>
+                                </div>
+                                {task.description&&<div style={{fontSize:11,color:'#4a6080',marginBottom:9,lineHeight:1.5}}>{task.description}</div>}
+                                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                                  {assignee?<div style={{display:'flex',alignItems:'center',gap:6}}><Av name={assignee.name} size={18} src={assignee.avatar}/><span style={{fontSize:10,color:'#6b87a8'}}>{(assignee.name||'').split(' ')[0]}</span></div>:<span style={{fontSize:10,color:'rgba(74,96,128,.5)'}}>Unassigned</span>}
+                                  {auth&&<span style={{fontSize:9,color:`${col.color}60`,fontFamily:'Fira Code,monospace'}}>click</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {col.tasks.length===0&&<div style={{textAlign:'center',padding:'28px 0',color:'rgba(74,96,128,.35)',fontSize:12,fontStyle:'italic'}}>Empty</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ):(
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
+                    <div className="card" style={{padding:22}}>
+                      <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:2,marginBottom:18}}>// TASK STATUS</div>
+                      {COLS.map(col=>(
+                        <div key={col.key} style={{marginBottom:14}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><span style={{fontSize:12,color:'#dde6f0'}}>{col.label}</span><span style={{fontSize:12,color:col.color,fontFamily:'Fira Code,monospace'}}>{col.tasks.length}/{pTasks.length}</span></div>
+                          <div className="progress-bg"><div style={{height:5,borderRadius:999,background:col.color,width:`${pTasks.length?Math.round((col.tasks.length/pTasks.length)*100):0}%`,transition:'width .8s ease'}}/></div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="card" style={{padding:22}}>
+                      <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:2,marginBottom:18}}>// MEMBER CONTRIBUTIONS</div>
+                      {(proj.members||[]).map(m=>{
+                        const mid=m._id||m.id;
+                        const n=pTasks.filter(t=>(t.assignee?._id||t.assignee?.id||t.assignee)===mid).length;
+                        return(
+                          <div key={mid} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                            <Av name={m.name} size={28} src={m.avatar}/>
+                            <div style={{flex:1}}>
+                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span style={{fontSize:12,color:'#dde6f0'}}>{m.name}</span><span style={{fontSize:11,color:'#00f5d4',fontFamily:'Fira Code,monospace'}}>{n} tasks</span></div>
+                              <div className="progress-bg"><div style={{height:4,borderRadius:999,background:`linear-gradient(90deg,${getAC(m.name)},#3b82f6)`,width:`${pTasks.length?Math.round((n/pTasks.length)*100):0}%`,transition:'width .8s ease'}}/></div>
                             </div>
                           </div>
                         );
                       })}
-                      {col.tasks.length===0&&<div style={{textAlign:'center',padding:'28px 0',color:'rgba(74,96,128,.35)',fontSize:12,fontStyle:'italic'}}>Empty</div>}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ):(
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
-                <div className="card" style={{padding:22}}>
-                  <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:2,marginBottom:18}}>// TASK STATUS</div>
-                  {COLS.map(col=>(
-                    <div key={col.key} style={{marginBottom:14}}>
-                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><span style={{fontSize:12,color:'#dde6f0'}}>{col.label}</span><span style={{fontSize:12,color:col.color,fontFamily:'Fira Code,monospace'}}>{col.tasks.length}/{pTasks.length}</span></div>
-                      <div className="progress-bg"><div style={{height:5,borderRadius:999,background:col.color,width:`${pTasks.length?Math.round((col.tasks.length/pTasks.length)*100):0}%`,transition:'width .8s ease'}}/></div>
-                    </div>
-                  ))}
-                </div>
-                <div className="card" style={{padding:22}}>
-                  <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#00f5d4',letterSpacing:2,marginBottom:18}}>// MEMBER CONTRIBUTIONS</div>
-                  {(proj.members||[]).map(m=>{
-                    const mid=m._id||m.id;
-                    const n=pTasks.filter(t=>(t.assignee?._id||t.assignee?.id||t.assignee)===mid).length;
-                    return (
-                      <div key={mid} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
-                        <Av name={m.name} size={28} src={m.avatar}/>
-                        <div style={{flex:1}}>
-                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span style={{fontSize:12,color:'#dde6f0'}}>{m.name}</span><span style={{fontSize:11,color:'#00f5d4',fontFamily:'Fira Code,monospace'}}>{n} tasks</span></div>
-                          <div className="progress-bg"><div style={{height:4,borderRadius:999,background:`linear-gradient(90deg,${getAC(m.name)},#3b82f6)`,width:`${pTasks.length?Math.round((n/pTasks.length)*100):0}%`,transition:'width .8s ease'}}/></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <div style={{textAlign:'center',padding:'80px 0',color:'#4a6080'}}><Folder size={40} style={{marginBottom:14,opacity:.22}}/><p>{auth?'Pehla project banao!':'Login karo.'}</p></div>
             )}
           </>
-        ):(
-          <div style={{textAlign:'center',padding:'80px 0',color:'#4a6080'}}><Folder size={40} style={{marginBottom:14,opacity:.22}}/><p>{auth?'Pehla project banao!':'Login karo projects manage karne ke liye.'}</p></div>
         )}
       </div>
+
       {showAddProj&&auth&&<AddProjectModal members={members} setProjects={setProjects} close={()=>setShowAddProj(false)} addToast={addToast} onSuccess={p=>setSelPid(p._id||p.id)}/>}
       {showAddTask&&auth&&proj&&<AddTaskModal members={(proj.members||[]).length>0?proj.members:members} projectId={pid} setTasks={setTasks} close={()=>setShowAddTask(false)} addToast={addToast}/>}
       {delPid&&(
         <div className="modal-overlay" onClick={()=>setDelPid(null)}>
           <div className="modal" style={{maxWidth:360}} onClick={e=>e.stopPropagation()}>
-            <div style={{textAlign:'center',marginBottom:24}}><Trash2 size={30} color="#f87171" style={{marginBottom:12}}/><div style={{fontWeight:700,fontSize:15,color:'#dde6f0',marginBottom:8}}>Project Delete Karo?</div><p style={{fontSize:12,color:'#6b87a8'}}>Yeh project aur saare tasks permanent delete ho jayenge.</p></div>
+            <div style={{textAlign:'center',marginBottom:24}}><Trash2 size={30} color="#f87171" style={{marginBottom:12}}/><div style={{fontWeight:700,fontSize:15,color:'#dde6f0',marginBottom:8}}>Project Delete Karo?</div><p style={{fontSize:12,color:'#6b87a8'}}>Permanent delete ho jayega.</p></div>
             <div style={{display:'flex',gap:10}}>
               <button onClick={()=>setDelPid(null)} className="btn-outline" style={{flex:1,justifyContent:'center',padding:'10px'}}>Cancel</button>
               <button onClick={()=>deleteProj(delPid)} style={{flex:1,padding:'10px',background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.28)',color:'#f87171',borderRadius:8,cursor:'pointer',fontFamily:'Outfit,sans-serif',fontSize:12,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}><Trash2 size={12}/>Delete</button>
@@ -664,122 +842,74 @@ const ManagementPage = ({ projects, setProjects, tasks, setTasks, members, auth,
 };
 
 /* ── Add Project Modal ── */
-const AddProjectModal = ({ members, setProjects, close, addToast, onSuccess }) => {
+const AddProjectModal=({members,setProjects,close,addToast,onSuccess})=>{
   const [f,setF]=useState({title:'',desc:'',deadline:'',memberIds:[],tags:'',color:'#00f5d4'});
   const [loading,setLoading]=useState(false);
   const submit=async()=>{
-    if(!f.title.trim()){addToast('Project title zaroori hai','error');return;}
+    if(!f.title.trim()){addToast('Title zaroori hai','error');return;}
     setLoading(true);
     try{
       const data=await apiFetch('/projects',{method:'POST',body:JSON.stringify({title:f.title.trim(),description:f.desc.trim(),deadline:f.deadline||undefined,members:f.memberIds,tags:f.tags.split(',').map(s=>s.trim()).filter(Boolean),color:f.color})});
       setProjects(prev=>[...prev,data.project]);
       addToast(`"${data.project.title}" ban gaya!`,'success');
-      onSuccess&&onSuccess(data.project);
-      close();
-    }catch(e){addToast(e.message||'Project create failed','error');}
+      onSuccess&&onSuccess(data.project);close();
+    }catch(e){addToast(e.message||'Failed','error');}
     setLoading(false);
   };
-  return (
-    <div className="modal-overlay" onClick={close}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
-          <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>New Project</div>
-          <button onClick={close} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button>
+  return(
+    <div className="modal-overlay" onClick={close}><div className="modal" onClick={e=>e.stopPropagation()}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}><div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>New Project</div><button onClick={close} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button></div>
+      <div style={{display:'flex',flexDirection:'column',gap:15}}>
+        <div><label className="label">Title *</label><input className="input" placeholder="Project naam" value={f.title} onChange={e=>setF(v=>({...v,title:e.target.value}))}/></div>
+        <div><label className="label">Description</label><textarea className="input" rows={2} placeholder="Kya bana rahe ho?" value={f.desc} onChange={e=>setF(v=>({...v,desc:e.target.value}))} style={{resize:'vertical'}}/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div><label className="label">Deadline</label><input className="input" type="date" value={f.deadline} onChange={e=>setF(v=>({...v,deadline:e.target.value}))}/></div>
+          <div><label className="label">Tags</label><input className="input" placeholder="React, Python..." value={f.tags} onChange={e=>setF(v=>({...v,tags:e.target.value}))}/></div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',gap:15}}>
-          <div><label className="label">Title *</label><input className="input" placeholder="Project ka naam" value={f.title} onChange={e=>setF(v=>({...v,title:e.target.value}))}/></div>
-          <div><label className="label">Description</label><textarea className="input" rows={2} placeholder="Kya bana rahe ho?" value={f.desc} onChange={e=>setF(v=>({...v,desc:e.target.value}))} style={{resize:'vertical'}}/></div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label className="label">Deadline</label><input className="input" type="date" value={f.deadline} onChange={e=>setF(v=>({...v,deadline:e.target.value}))}/></div>
-            <div><label className="label">Tags</label><input className="input" placeholder="React, Python..." value={f.tags} onChange={e=>setF(v=>({...v,tags:e.target.value}))}/></div>
-          </div>
-          <div>
-            <label className="label">Color</label>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              {COLORS.map(c=><button key={c} onClick={()=>setF(v=>({...v,color:c}))} style={{width:26,height:26,borderRadius:'50%',background:c,border:'none',cursor:'pointer',outline:f.color===c?`3px solid ${c}`:'3px solid transparent',outlineOffset:2}}/>)}
-            </div>
-          </div>
-          <div>
-            <label className="label">Members Assign Karo</label>
-            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-              {members.map(m=>{const id=m._id||m.id;const sel=f.memberIds.includes(id);return(
-                <button key={id} onClick={()=>setF(v=>({...v,memberIds:sel?v.memberIds.filter(i=>i!==id):[...v.memberIds,id]}))} className="btn-sm" style={{background:sel?'rgba(0,245,212,.1)':'transparent',borderColor:sel?'rgba(0,245,212,.4)':'rgba(255,255,255,.07)',color:sel?'#00f5d4':'#6b87a8'}}>
-                  {sel&&<Check size={10}/>}{m.name.split(' ')[0]}
-                </button>
-              );})}
-            </div>
-          </div>
-          <button onClick={submit} className="btn-primary" style={{justifyContent:'center'}} disabled={loading}>
-            {loading?<><span className="spin-anim"/>Creating...</>:<><Plus size={13}/>Create Project</>}
-          </button>
-        </div>
+        <div><label className="label">Color</label><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{COLORS.map(c=><button key={c} onClick={()=>setF(v=>({...v,color:c}))} style={{width:26,height:26,borderRadius:'50%',background:c,border:'none',cursor:'pointer',outline:f.color===c?`3px solid ${c}`:'3px solid transparent',outlineOffset:2}}/>)}</div></div>
+        <div><label className="label">Members</label><div style={{display:'flex',flexWrap:'wrap',gap:7}}>{members.map(m=>{const id=m._id||m.id;const sel=f.memberIds.includes(id);return(<button key={id} onClick={()=>setF(v=>({...v,memberIds:sel?v.memberIds.filter(i=>i!==id):[...v.memberIds,id]}))} className="btn-sm" style={{background:sel?'rgba(0,245,212,.1)':'transparent',borderColor:sel?'rgba(0,245,212,.4)':'rgba(255,255,255,.07)',color:sel?'#00f5d4':'#6b87a8'}}>{sel&&<Check size={10}/>}{m.name.split(' ')[0]}</button>);})}</div></div>
+        <button onClick={submit} className="btn-primary" style={{justifyContent:'center'}} disabled={loading}>{loading?<><span className="spin-anim"/>Creating...</>:<><Plus size={13}/>Create Project</>}</button>
       </div>
-    </div>
+    </div></div>
   );
 };
 
 /* ── Add Task Modal ── */
-const AddTaskModal = ({ members, projectId, setTasks, close, addToast }) => {
+const AddTaskModal=({members,projectId,setTasks,close,addToast})=>{
   const [f,setF]=useState({title:'',desc:'',assignee:'',status:'todo',priority:'medium',dueDate:''});
   const [loading,setLoading]=useState(false);
   const submit=async()=>{
-    if(!f.title.trim()){addToast('Task title zaroori hai','error');return;}
+    if(!f.title.trim()){addToast('Title zaroori hai','error');return;}
     setLoading(true);
     try{
       const data=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({title:f.title.trim(),description:f.desc.trim(),project:projectId,assignee:f.assignee||undefined,status:f.status,priority:f.priority,dueDate:f.dueDate||undefined})});
       setTasks(prev=>[...prev,{...data.task,pid:projectId}]);
-      addToast(`Task add ho gaya!`,'success');
-      close();
-    }catch(e){addToast(e.message||'Task create failed','error');}
+      addToast('Task add ho gaya!','success');close();
+    }catch(e){addToast(e.message||'Failed','error');}
     setLoading(false);
   };
-  return (
-    <div className="modal-overlay" onClick={close}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
-          <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>Add Task</div>
-          <button onClick={close} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button>
+  return(
+    <div className="modal-overlay" onClick={close}><div className="modal" onClick={e=>e.stopPropagation()}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}><div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>Add Task</div><button onClick={close} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button></div>
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div><label className="label">Title *</label><input className="input" placeholder="Kya karna hai?" value={f.title} onChange={e=>setF(v=>({...v,title:e.target.value}))}/></div>
+        <div><label className="label">Description</label><textarea className="input" rows={2} placeholder="Details..." value={f.desc} onChange={e=>setF(v=>({...v,desc:e.target.value}))} style={{resize:'vertical'}}/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div><label className="label">Assign To</label><select className="input" value={f.assignee} onChange={e=>setF(v=>({...v,assignee:e.target.value}))}><option value="">Unassigned</option>{members.map(m=><option key={m._id||m.id} value={m._id||m.id}>{m.name}</option>)}</select></div>
+          <div><label className="label">Priority</label><select className="input" value={f.priority} onChange={e=>setF(v=>({...v,priority:e.target.value}))}><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',gap:14}}>
-          <div><label className="label">Title *</label><input className="input" placeholder="Kya karna hai?" value={f.title} onChange={e=>setF(v=>({...v,title:e.target.value}))}/></div>
-          <div><label className="label">Description</label><textarea className="input" rows={2} placeholder="Details..." value={f.desc} onChange={e=>setF(v=>({...v,desc:e.target.value}))} style={{resize:'vertical'}}/></div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label className="label">Assign To</label>
-              <select className="input" value={f.assignee} onChange={e=>setF(v=>({...v,assignee:e.target.value}))}>
-                <option value="">Unassigned</option>
-                {members.map(m=><option key={m._id||m.id} value={m._id||m.id}>{m.name}</option>)}
-              </select>
-            </div>
-            <div><label className="label">Priority</label>
-              <select className="input" value={f.priority} onChange={e=>setF(v=>({...v,priority:e.target.value}))}>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><label className="label">Status</label>
-              <select className="input" value={f.status} onChange={e=>setF(v=>({...v,status:e.target.value}))}>
-                <option value="todo">To Do</option>
-                <option value="inprogress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
-            </div>
-            <div><label className="label">Due Date</label><input className="input" type="date" value={f.dueDate} onChange={e=>setF(v=>({...v,dueDate:e.target.value}))}/></div>
-          </div>
-          <button onClick={submit} className="btn-primary" style={{justifyContent:'center'}} disabled={loading}>
-            {loading?<><span className="spin-anim"/>Adding...</>:<><Plus size={13}/>Add Task</>}
-          </button>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div><label className="label">Status</label><select className="input" value={f.status} onChange={e=>setF(v=>({...v,status:e.target.value}))}><option value="todo">To Do</option><option value="inprogress">In Progress</option><option value="done">Done</option></select></div>
+          <div><label className="label">Due Date</label><input className="input" type="date" value={f.dueDate} onChange={e=>setF(v=>({...v,dueDate:e.target.value}))}/></div>
         </div>
+        <button onClick={submit} className="btn-primary" style={{justifyContent:'center'}} disabled={loading}>{loading?<><span className="spin-anim"/>Adding...</>:<><Plus size={13}/>Add Task</>}</button>
       </div>
-    </div>
+    </div></div>
   );
 };
 
 /* ── Login Modal ── */
-const LoginModal = ({ close, setAuth, addToast }) => {
+const LoginModal=({close,setAuth,addToast})=>{
   const [creds,setCreds]=useState({email:'',pass:''});
   const [err,setErr]=useState('');
   const [loading,setLoading]=useState(false);
@@ -791,7 +921,7 @@ const LoginModal = ({ close, setAuth, addToast }) => {
     try{
       const res=await fetch(`${API_BASE}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:creds.email,password:creds.pass})});
       const data=await res.json();
-      if(!res.ok) throw new Error(data.error||'Login failed');
+      if(!res.ok)throw new Error(data.error||'Login failed');
       localStorage.setItem('ll_token',data.token);
       setAuth(data.member);
       addToast(`Welcome, ${data.member.name.split(' ')[0]}!`,'success');
@@ -799,51 +929,44 @@ const LoginModal = ({ close, setAuth, addToast }) => {
     }catch(e){setErr(e.message||'Invalid credentials');}
     setLoading(false);
   },[creds,setAuth,addToast,close]);
-  return (
-    <div className="modal-overlay" onClick={close}>
-      <div className="modal" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
-        <div style={{textAlign:'center',marginBottom:26}}>
-          <div style={{width:50,height:50,borderRadius:13,background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}><Zap size={20} color="#030b1a" strokeWidth={2.5}/></div>
-          <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:17,color:'#dde6f0'}}>LogicLords Login</div>
-        </div>
-        {err&&<div style={{background:'rgba(239,68,68,.07)',border:'1px solid rgba(239,68,68,.18)',borderRadius:7,padding:'9px 13px',marginBottom:14,fontSize:12,color:'#f87171'}}>{err}</div>}
-        <div style={{display:'flex',flexDirection:'column',gap:13,marginBottom:18}}>
-          <div><label className="label">Email</label><input className="input" type="email" placeholder="tumhari@email.com" value={creds.email} onChange={e=>setCreds(c=>({...c,email:e.target.value}))}/></div>
-          <div><label className="label">Password</label>
-            <div style={{position:'relative'}}>
-              <input className="input" type={showPass?'text':'password'} placeholder="password" value={creds.pass} onChange={e=>setCreds(c=>({...c,pass:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&login()} style={{paddingRight:40}}/>
-              <button onClick={()=>setShowPass(o=>!o)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#4a6080',display:'flex'}}>{showPass?<EyeOff size={14}/>:<Eye size={14}/>}</button>
-            </div>
+  return(
+    <div className="modal-overlay" onClick={close}><div className="modal" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+      <div style={{textAlign:'center',marginBottom:26}}>
+        <div style={{width:50,height:50,borderRadius:13,background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}><Zap size={20} color="#030b1a" strokeWidth={2.5}/></div>
+        <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:17,color:'#dde6f0'}}>LogicLords Login</div>
+      </div>
+      {err&&<div style={{background:'rgba(239,68,68,.07)',border:'1px solid rgba(239,68,68,.18)',borderRadius:7,padding:'9px 13px',marginBottom:14,fontSize:12,color:'#f87171'}}>{err}</div>}
+      <div style={{display:'flex',flexDirection:'column',gap:13,marginBottom:18}}>
+        <div><label className="label">Email</label><input className="input" type="email" placeholder="tumhari@email.com" value={creds.email} onChange={e=>setCreds(c=>({...c,email:e.target.value}))}/></div>
+        <div><label className="label">Password</label>
+          <div style={{position:'relative'}}>
+            <input className="input" type={showPass?'text':'password'} placeholder="password" value={creds.pass} onChange={e=>setCreds(c=>({...c,pass:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&login()} style={{paddingRight:40}}/>
+            <button onClick={()=>setShowPass(o=>!o)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#4a6080',display:'flex'}}>{showPass?<EyeOff size={14}/>:<Eye size={14}/>}</button>
           </div>
         </div>
-        <button onClick={login} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'12px'}} disabled={loading}>
-          {loading?<><span className="spin-anim"/>Authenticating...</>:<><LogIn size={13}/>Login</>}
-        </button>
       </div>
-    </div>
+      <button onClick={login} className="btn-primary" style={{width:'100%',justifyContent:'center',padding:'12px'}} disabled={loading}>
+        {loading?<><span className="spin-anim"/>Authenticating...</>:<><LogIn size={13}/>Login</>}
+      </button>
+    </div></div>
   );
 };
 
 /* ── Footer ── */
-const Footer = ({ setPage }) => (
+const Footer=({setPage})=>(
   <footer style={{background:'rgba(2,6,18,.98)',borderTop:'1px solid rgba(255,255,255,.04)',padding:'36px 24px'}}>
     <div style={{maxWidth:1100,margin:'0 auto',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:16}}>
-      <div style={{display:'flex',alignItems:'center',gap:9}}>
-        <div style={{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Zap size={12} color="#030b1a" strokeWidth={2.5}/></div>
-        <span style={{fontFamily:'Orbitron,monospace',fontSize:12,fontWeight:700,color:'#00f5d4'}}>LogicLords</span>
-      </div>
+      <div style={{display:'flex',alignItems:'center',gap:9}}><div style={{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center'}}><Zap size={12} color="#030b1a" strokeWidth={2.5}/></div><span style={{fontFamily:'Orbitron,monospace',fontSize:12,fontWeight:700,color:'#00f5d4'}}>LogicLords</span></div>
       <span style={{fontSize:11,color:'#4a6080',fontFamily:'Fira Code,monospace'}}>2025 LogicLords · Where Logic Meets Innovation</span>
-      <div style={{display:'flex',gap:14}}>
-        {['home','team','projects','achievements','management'].map(p=>(
-          <button key={p} onClick={()=>setPage(p)} style={{background:'none',border:'none',cursor:'pointer',color:'#4a6080',fontSize:11,fontFamily:'Outfit,sans-serif',textTransform:'capitalize',transition:'color .2s'}} onMouseEnter={e=>e.target.style.color='#00f5d4'} onMouseLeave={e=>e.target.style.color='#4a6080'}>{p}</button>
-        ))}
-      </div>
+      <div style={{display:'flex',gap:14}}>{['home','team','projects','achievements','management'].map(p=>(<button key={p} onClick={()=>setPage(p)} style={{background:'none',border:'none',cursor:'pointer',color:'#4a6080',fontSize:11,fontFamily:'Outfit,sans-serif',textTransform:'capitalize',transition:'color .2s'}} onMouseEnter={e=>e.target.style.color='#00f5d4'} onMouseLeave={e=>e.target.style.color='#4a6080'}>{p}</button>))}</div>
     </div>
   </footer>
 );
 
-/* ── APP ROOT ── */
-export default function App() {
+/* ══════════════════════════════════════════════════
+   APP ROOT
+══════════════════════════════════════════════════ */
+export default function App(){
   const [page,setPage]           = useState('home');
   const [members,setMembers]     = useState([]);
   const [projects,setProjects]   = useState([]);
@@ -853,15 +976,15 @@ export default function App() {
   const [toasts,setToasts]       = useState([]);
   const [loading,setLoading]     = useState(true);
 
-  const addToast = useCallback((msg,type='success')=>{
+  const addToast=useCallback((msg,type='success')=>{
     const id=Date.now();
     setToasts(p=>[...p,{id,msg,type}]);
     setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4200);
   },[]);
-  const rmToast = useCallback(id=>setToasts(p=>p.filter(t=>t.id!==id)),[]);
+  const rmToast=useCallback(id=>setToasts(p=>p.filter(t=>t.id!==id)),[]);
 
-  /* Fetch all data from MongoDB via API */
-  const fetchAll = useCallback(async()=>{
+  /* Fetch from MongoDB */
+  const fetchAll=useCallback(async()=>{
     setLoading(true);
     try{
       const [mRes,pRes,tRes]=await Promise.all([
@@ -873,13 +996,11 @@ export default function App() {
       setMembers(mData.members||[]);
       setProjects(pData.projects||[]);
       setTasks(tData.tasks||[]);
-    }catch(e){
-      addToast('Backend se connect nahi ho pa raha','error');
-    }
+    }catch(e){addToast('Backend connect nahi hua','error');}
     setLoading(false);
   },[addToast]);
 
-  /* Restore login session */
+  /* Restore session */
   useEffect(()=>{
     const token=localStorage.getItem('ll_token');
     if(token){
@@ -893,7 +1014,7 @@ export default function App() {
 
   useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'});},[page]);
 
-  const refreshMembers = useCallback(async()=>{
+  const refreshMembers=useCallback(async()=>{
     try{const d=await apiFetch('/members');setMembers(d.members||[]);}catch(e){}
   },[]);
 
@@ -906,7 +1027,7 @@ export default function App() {
     management:   <ManagementPage projects={projects} setProjects={setProjects} tasks={tasks} setTasks={setTasks} members={members} auth={auth} addToast={addToast}/>,
   };
 
-  return (
+  return(
     <>
       <style>{STYLES}</style>
       <div style={{minHeight:'100vh',display:'flex',flexDirection:'column'}}>
