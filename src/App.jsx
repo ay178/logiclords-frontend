@@ -904,11 +904,38 @@ const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast
                       ))}
                     </div>
                   </div>
-                  <PBar value={pct} color={proj.color}/>
+                  <PBar value={proj.githubProgress||pct} color={proj.color}/>
                   <div style={{marginTop:12,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
                     {(proj.tags||[]).map(t=><span key={t} style={{background:`${proj.color}0d`,border:`1px solid ${proj.color}22`,color:proj.color,padding:'2px 9px',borderRadius:4,fontSize:10,fontFamily:'Fira Code,monospace'}}>{t}</span>)}
                     <span style={{marginLeft:'auto',fontSize:11,color:'#4a6080',display:'flex',alignItems:'center',gap:4}}><Calendar size={11}/>{proj.deadline?new Date(proj.deadline).toLocaleDateString('en-IN'):'TBD'}</span>
                   </div>
+                  {/* GitHub Stats Row */}
+                  {proj.githubRepo&&(
+                    <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid rgba(255,255,255,.05)',display:'flex',gap:16,flexWrap:'wrap',alignItems:'center'}}>
+                      <a href={proj.githubUrl||`https://github.com/${proj.githubRepo}`} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#00f5d4',fontFamily:'Fira Code,monospace',textDecoration:'none'}}>
+                        <Github size={11}/>{proj.githubRepo}
+                      </a>
+                      {proj.githubData?.stars>0&&<span style={{fontSize:11,color:'#fbbf24',fontFamily:'Fira Code,monospace'}}>⭐ {proj.githubData.stars}</span>}
+                      {proj.githubData?.openPRs>0&&<span style={{fontSize:11,color:'#818cf8',fontFamily:'Fira Code,monospace'}}>🔀 {proj.githubData.openPRs} PRs</span>}
+                      {proj.githubData?.openIssues>0&&<span style={{fontSize:11,color:'#f87171',fontFamily:'Fira Code,monospace'}}>🐛 {proj.githubData.openIssues} issues</span>}
+                      {proj.githubData?.lastCommit&&<span style={{fontSize:10,color:'#6b87a8',fontFamily:'Fira Code,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:200}}>💾 {proj.githubData.lastCommit}</span>}
+                      {proj.githubProgress===100&&<span style={{fontSize:11,color:'#10b981',fontWeight:700}}>✅ Completed!</span>}
+                    </div>
+                  )}
+                  {/* Recent Activity */}
+                  {proj.recentActivity&&proj.recentActivity.length>0&&(
+                    <div style={{marginTop:10}}>
+                      {proj.recentActivity.slice(0,3).map((act,i)=>(
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',borderBottom:i<2?'1px solid rgba(255,255,255,.03)':'none'}}>
+                          <span style={{fontSize:10,color:act.type==='push'?'#3b82f6':act.type==='merged'?'#10b981':'#fbbf24'}}>
+                            {act.type==='push'?'↑':act.type==='merged'?'✓':'•'}
+                          </span>
+                          <span style={{fontSize:11,color:'#6b87a8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{act.title}</span>
+                          <span style={{fontSize:9,color:'#4a6080',fontFamily:'Fira Code,monospace',flexShrink:0}}>{act.author}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Kanban board */}
@@ -1000,25 +1027,75 @@ const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast
 
 /* ── Add Project Modal ── */
 const AddProjectModal=({members,setProjects,close,addToast,onSuccess})=>{
-  const [f,setF]=useState({title:'',desc:'',deadline:'',memberIds:[],tags:'',color:'#00f5d4'});
+  const [f,setF]=useState({title:'',desc:'',deadline:'',memberIds:[],tags:'',color:'#00f5d4',githubUrl:''});
   const [loading,setLoading]=useState(false);
+  const [syncing,setSyncing]=useState(false);
+  const [repoPreview,setRepoPreview]=useState(null);
+
+  const previewRepo=async()=>{
+    let url=f.githubUrl.trim();
+    if(!url)return;
+    if(url.includes('github.com'))url=url.split('github.com/')[1]?.replace('.git','')?.replace(/\/$/,'');
+    setSyncing(true);
+    try{
+      const data=await apiFetch(`/github/repo-data?repo=${url}`);
+      setRepoPreview(data.repo);
+      addToast(`Connected: ${data.repo.fullName}`,'success');
+    }catch(e){addToast('Could not fetch repo — check URL','error');}
+    setSyncing(false);
+  };
+
   const submit=async()=>{
     if(!f.title.trim()){addToast('Project title is required','error');return;}
     setLoading(true);
     try{
-      const data=await apiFetch('/projects',{method:'POST',body:JSON.stringify({title:f.title.trim(),description:f.desc.trim(),deadline:f.deadline||undefined,members:f.memberIds,tags:f.tags.split(',').map(s=>s.trim()).filter(Boolean),color:f.color})});
+      let repoPath='';
+      if(f.githubUrl.trim()){
+        repoPath=f.githubUrl.trim();
+        if(repoPath.includes('github.com'))repoPath=repoPath.split('github.com/')[1]?.replace('.git','')?.replace(/\/$/,'')||'';
+      }
+      const data=await apiFetch('/projects',{method:'POST',body:JSON.stringify({
+        title:f.title.trim(),description:f.desc.trim(),
+        deadline:f.deadline||undefined,members:f.memberIds,
+        tags:f.tags.split(',').map(s=>s.trim()).filter(Boolean),
+        color:f.color,
+        githubUrl:f.githubUrl.trim(),
+        githubRepo:repoPath,
+      })});
       setProjects(prev=>[...prev,data.project]);
       addToast(`"${data.project.title}" created!`,'success');
       onSuccess&&onSuccess(data.project);close();
     }catch(e){addToast(e.message||'Failed to create project','error');}
     setLoading(false);
   };
+
   return(
     <div className="modal-overlay" onClick={close}><div className="modal" onClick={e=>e.stopPropagation()}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}><div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>New Project</div><button onClick={close} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button></div>
       <div style={{display:'flex',flexDirection:'column',gap:15}}>
         <div><label className="label">Title *</label><input className="input" placeholder="Project name" value={f.title} onChange={e=>setF(v=>({...v,title:e.target.value}))}/></div>
         <div><label className="label">Description</label><textarea className="input" rows={2} placeholder="What are you building?" value={f.desc} onChange={e=>setF(v=>({...v,desc:e.target.value}))} style={{resize:'vertical'}}/></div>
+        {/* GitHub URL */}
+        <div>
+          <label className="label">GitHub Repository URL</label>
+          <div style={{display:'flex',gap:8}}>
+            <div style={{position:'relative',flex:1}}>
+              <Github size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/>
+              <input className="input" style={{paddingLeft:32}} placeholder="github.com/username/repo" value={f.githubUrl} onChange={e=>setF(v=>({...v,githubUrl:e.target.value})) }/>
+            </div>
+            <button onClick={previewRepo} disabled={syncing||!f.githubUrl.trim()} className="btn-sm" style={{background:'rgba(0,245,212,.08)',borderColor:'rgba(0,245,212,.25)',color:'#00f5d4',padding:'0 12px'}}>
+              {syncing?<span className="spin-anim"/>:<Check size={12}/>}
+            </button>
+          </div>
+          {repoPreview&&(
+            <div style={{marginTop:8,background:'rgba(0,245,212,.05)',border:'1px solid rgba(0,245,212,.15)',borderRadius:8,padding:'10px 12px',display:'flex',gap:14,flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'#00f5d4',fontFamily:'Fira Code,monospace'}}>⭐ {repoPreview.stars}</span>
+              <span style={{fontSize:11,color:'#6b87a8',fontFamily:'Fira Code,monospace'}}>🍴 {repoPreview.forks}</span>
+              <span style={{fontSize:11,color:'#6b87a8',fontFamily:'Fira Code,monospace'}}>🔤 {repoPreview.language||'—'}</span>
+              <span style={{fontSize:11,color:'#34d399',fontFamily:'Fira Code,monospace'}}>✅ Connected!</span>
+            </div>
+          )}
+        </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           <div><label className="label">Deadline</label><input className="input" type="date" value={f.deadline} onChange={e=>setF(v=>({...v,deadline:e.target.value}))}/></div>
           <div><label className="label">Tags</label><input className="input" placeholder="React, Python..." value={f.tags} onChange={e=>setF(v=>({...v,tags:e.target.value}))}/></div>
@@ -1166,6 +1243,45 @@ export default function App(){
         .catch(()=>localStorage.removeItem('ll_token'));
     }
     fetchAll();
+
+    /* ── Real-time GitHub updates via Socket.io ── */
+    import('socket.io-client').then(({io})=>{
+      const token=localStorage.getItem('ll_token');
+      if(!token)return;
+      const socket=io(SOCK_URL,{auth:{token},transports:['websocket','polling']});
+
+      /* GitHub webhook triggered update */
+      socket.on('project_github_updated',(data)=>{
+        setProjects(prev=>prev.map(p=>{
+          if(String(p._id||p.id)===String(data.projectId)){
+            return{
+              ...p,
+              githubData:     data.githubData,
+              githubProgress: data.githubProgress,
+              status:         data.status||p.status,
+              recentActivity: data.recentActivity||p.recentActivity,
+            };
+          }
+          return p;
+        }));
+        if(data.activity?.type==='merged'){
+          addToast(`🎉 PR Merged: ${data.activity.title||''}`, 'success');
+        } else if(data.activity?.type==='push'){
+          addToast(`📦 New push by ${data.activity.author||'someone'}`, 'info');
+        }
+      });
+
+      /* Also refresh tasks when github updates (PRs may close tasks) */
+      socket.on('project_github_updated',async()=>{
+        try{
+          const res=await fetch(`${API_BASE}/tasks`);
+          const d=await res.json();
+          setTasks(d.tasks||[]);
+        }catch(e){}
+      });
+
+      return()=>socket.disconnect();
+    }).catch(()=>{});
   },[fetchAll]);
 
   useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'});},[page]);
