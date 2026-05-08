@@ -333,11 +333,19 @@ const RegisterPage=({refreshMembers,addToast})=>{
   const submit=useCallback(async()=>{
     if(!form.name.trim()||!form.email.trim()||!form.password){addToast('Name, email & password are required','error');return;}
     if(form.password.length<6){addToast('Password must be at least 6 characters','error');return;}
+    if(!/\S+@\S+\.\S+/.test(form.email)){addToast('Please enter a valid email address','error');return;}
     setLoading(true);
     try{
       const data=await apiFetch('/auth/signup',{method:'POST',body:JSON.stringify({name:form.name.trim(),email:form.email.trim(),password:form.password,role:form.role,skills:form.skills.split(',').map(s=>s.trim()).filter(Boolean),github:form.github,linkedin:form.linkedin,bio:form.bio.trim()})});
-      if(data.token)localStorage.setItem('ll_token',data.token);
-      setDone(data.member);addToast(`Welcome, ${data.member.name.split(' ')[0]}! 🎉`,'success');refreshMembers();
+      if(data.token){
+        localStorage.setItem('ll_token',data.token);
+        refreshMembers();
+        setDone({type:'approved',name:form.name.trim()});
+        addToast('Welcome to LogicLords! 🎉','success');
+      } else {
+        setDone({type:'pending',email:form.email.trim(),name:form.name.trim()});
+        addToast('Registration submitted! Check your email.','info');
+      }
     }catch(e){addToast(e.message||'Registration failed','error');}
     setLoading(false);
   },[form,addToast,refreshMembers]);
@@ -347,11 +355,37 @@ const RegisterPage=({refreshMembers,addToast})=>{
         <SecHead pre="join the team" title="Register" sub="Fill in your details to join LogicLords. Your profile will appear on the team page instantly!"/>
         <div className="card" style={{padding:'34px 30px',border:'1px solid rgba(0,245,212,.1)'}}>
           {done?(
-            <div style={{textAlign:'center',padding:'32px 0'}}>
-              <div className="float-anim" style={{fontSize:56,marginBottom:18}}>🎉</div>
-              <div style={{fontFamily:'Orbitron,monospace',fontSize:20,fontWeight:700,color:'#00f5d4',marginBottom:10}}>Welcome, {done.name.split(' ')[0]}!</div>
-              <p style={{color:'#6b87a8',fontSize:14,marginBottom:24}}>Your profile is now live on the Team page!</p>
-              <button onClick={()=>setDone(null)} className="btn-outline" style={{padding:'9px 20px',fontSize:11}}><Plus size={12}/>Register Another</button>
+            <div style={{textAlign:'center',padding:'28px 0'}}>
+              {done.type==='approved'?(
+                <>
+                  <div className="float-anim" style={{fontSize:52,marginBottom:16}}>🎉</div>
+                  <div style={{fontFamily:'Orbitron,monospace',fontSize:19,fontWeight:700,color:'#00f5d4',marginBottom:10}}>Welcome, {done.name?.split(' ')[0]}!</div>
+                  <p style={{color:'#6b87a8',fontSize:13,marginBottom:20}}>You are now an official LogicLords member!</p>
+                  <button onClick={()=>setDone(null)} className="btn-outline" style={{padding:'9px 20px',fontSize:11}}><Plus size={12}/>Register Another</button>
+                </>
+              ):(
+                <>
+                  <div style={{fontSize:52,marginBottom:16}}>📧</div>
+                  <div style={{fontFamily:'Orbitron,monospace',fontSize:18,fontWeight:700,color:'#fbbf24',marginBottom:14}}>Check Your Email!</div>
+                  <div style={{background:'rgba(251,191,36,.06)',border:'1px solid rgba(251,191,36,.2)',borderRadius:12,padding:'20px',marginBottom:20,textAlign:'left'}}>
+                    <p style={{color:'#dde6f0',fontSize:13,marginBottom:12,fontWeight:600}}>What happens next:</p>
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {[
+                        {icon:'1️⃣',text:`Verification email sent to ${done.email}`},
+                        {icon:'2️⃣',text:'Click the link in the email to verify your account'},
+                        {icon:'3️⃣',text:'Admin will review your application'},
+                        {icon:'4️⃣',text:'You will get an approval email — then login!'},
+                      ].map((s,i)=>(
+                        <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                          <span style={{fontSize:15,flexShrink:0}}>{s.icon}</span>
+                          <span style={{fontSize:12,color:'#6b87a8',lineHeight:1.6}}>{s.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={()=>setDone(null)} className="btn-outline" style={{padding:'9px 20px',fontSize:11}}><Plus size={12}/>Register Another</button>
+                </>
+              )}
             </div>
           ):(
             <div style={{display:'flex',flexDirection:'column',gap:18}}>
@@ -795,7 +829,7 @@ const GitHubView=({auth,addToast,members})=>{
 /* ══════════════════════════════════════════════════
    MANAGEMENT PAGE
 ══════════════════════════════════════════════════ */
-const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast})=>{
+const ManagementPage=({projects,setProjects,tasks,setTasks,members,setMembers,auth,addToast})=>{
   const [selPid,setSelPid]=useState(null);
   const [view,setView]=useState('kanban');
   const [showAddProj,setShowAddProj]=useState(false);
@@ -837,6 +871,7 @@ const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast
     {id:'analytics',icon:<BarChart2 size={12}/>,   label:'Analytics'},
     {id:'github',   icon:<GitBranch size={12}/>,   label:'GitHub 🌿'},
     {id:'chat',     icon:<MessageSquare size={12}/>,label:'Chat 💬'},
+    ...(auth?.isAdmin?[{id:'approvals',icon:<Shield size={12}/>,label:'Approvals 🔔'}]:[]),
   ];
   const isProjectView = view==='kanban'||view==='analytics';
   return(
@@ -867,6 +902,9 @@ const ManagementPage=({projects,setProjects,tasks,setTasks,members,auth,addToast
 
         {/* Chat tab */}
         {view==='chat'&&<ChatView auth={auth} addToast={addToast}/>}
+
+        {/* Admin Approvals tab */}
+        {view==='approvals'&&<AdminApprovalPanel auth={auth} addToast={addToast} setMembers={setMembers}/>}
 
         {/* Kanban / Analytics tabs */}
         {isProjectView&&(
@@ -1198,6 +1236,257 @@ const Footer=({setPage})=>(
   </footer>
 );
 
+
+/* ══════════════════════════════════════════════════
+   EMAIL VERIFY PAGE
+══════════════════════════════════════════════════ */
+const EmailVerifyPage=({addToast})=>{
+  const [status,setStatus]=useState('loading'); // loading | success | error | resend
+  const [msg,setMsg]=useState('');
+  const [resendEmail,setResendEmail]=useState('');
+  const [resending,setResending]=useState(false);
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const token=params.get('token');
+    if(!token){setStatus('resend');return;}
+    apiFetch(`/auth/verify?token=${token}`)
+      .then(d=>{setStatus('success');setMsg(d.message||'Email verified!');})
+      .catch(e=>{setStatus('error');setMsg(e.message||'Invalid or expired link.');});
+  },[]);
+
+  const resend=async()=>{
+    if(!resendEmail.trim()){addToast('Enter your email','error');return;}
+    setResending(true);
+    try{
+      const d=await apiFetch('/auth/resend-verification',{method:'POST',body:JSON.stringify({email:resendEmail.trim()})});
+      addToast(d.message||'Verification email sent!','success');
+      setResendEmail('');
+    }catch(e){addToast(e.message||'Failed to resend','error');}
+    setResending(false);
+  };
+
+  return(
+    <div style={{paddingTop:120,paddingBottom:80,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{maxWidth:480,width:'100%',padding:'0 24px'}}>
+        <div className="card" style={{padding:'40px 32px',textAlign:'center',border:'1px solid rgba(0,245,212,.12)'}}>
+          {status==='loading'&&(
+            <>
+              <div style={{width:44,height:44,borderRadius:'50%',border:'3px solid rgba(0,245,212,.2)',borderTopColor:'#00f5d4',animation:'spin .8s linear infinite',margin:'0 auto 20px'}}/>
+              <p style={{color:'#6b87a8'}}>Verifying your email...</p>
+            </>
+          )}
+          {status==='success'&&(
+            <>
+              <div style={{fontSize:56,marginBottom:16}}>✅</div>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:20,fontWeight:700,color:'#10b981',marginBottom:12}}>Email Verified!</div>
+              <p style={{color:'#6b87a8',fontSize:13,lineHeight:1.7,marginBottom:24}}>{msg}</p>
+              <div style={{background:'rgba(251,191,36,.06)',border:'1px solid rgba(251,191,36,.2)',borderRadius:10,padding:'16px',marginBottom:20}}>
+                <p style={{color:'#fbbf24',fontSize:12,fontWeight:600,marginBottom:6}}>⏳ Pending Admin Approval</p>
+                <p style={{color:'#6b87a8',fontSize:12,lineHeight:1.6}}>Your application is now in the queue. The admin will review it and you will receive an email once approved.</p>
+              </div>
+            </>
+          )}
+          {status==='error'&&(
+            <>
+              <div style={{fontSize:56,marginBottom:16}}>❌</div>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:18,fontWeight:700,color:'#f87171',marginBottom:12}}>Verification Failed</div>
+              <p style={{color:'#6b87a8',fontSize:13,marginBottom:24}}>{msg}</p>
+              <p style={{color:'#4a6080',fontSize:12,marginBottom:16}}>Request a new verification link below:</p>
+              <div style={{display:'flex',gap:8}}>
+                <input className="input" placeholder="your@email.com" value={resendEmail} onChange={e=>setResendEmail(e.target.value)}/>
+                <button onClick={resend} className="btn-primary" style={{padding:'11px 16px',fontSize:11,flexShrink:0}} disabled={resending}>
+                  {resending?<span className="spin-anim"/>:'Send'}
+                </button>
+              </div>
+            </>
+          )}
+          {status==='resend'&&(
+            <>
+              <div style={{fontSize:56,marginBottom:16}}>📧</div>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:18,fontWeight:700,color:'#fbbf24',marginBottom:12}}>Resend Verification</div>
+              <p style={{color:'#6b87a8',fontSize:13,marginBottom:20}}>Enter your email to get a new verification link.</p>
+              <div style={{display:'flex',gap:8}}>
+                <input className="input" placeholder="your@email.com" value={resendEmail} onChange={e=>setResendEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&resend()}/>
+                <button onClick={resend} className="btn-primary" style={{padding:'11px 16px',fontSize:11,flexShrink:0}} disabled={resending}>
+                  {resending?<span className="spin-anim"/>:'Send'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════
+   ADMIN APPROVAL PANEL
+   Shows pending applications for admin to approve/reject
+══════════════════════════════════════════════════ */
+const AdminApprovalPanel=({auth,addToast,setMembers})=>{
+  const [pending,setPending]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [rejectModal,setRejectModal]=useState(null);
+  const [rejectReason,setRejectReason]=useState('');
+  const [processing,setProcessing]=useState(null);
+
+  const loadPending=useCallback(async()=>{
+    try{
+      const data=await apiFetch('/members/pending');
+      setPending(data.members||[]);
+    }catch(e){addToast('Could not load pending applications','error');}
+    setLoading(false);
+  },[addToast]);
+
+  useEffect(()=>{loadPending();},[loadPending]);
+
+  // Real-time: listen for new registrations
+  useEffect(()=>{
+    import('socket.io-client').then(({io})=>{
+      const token=localStorage.getItem('ll_token');
+      if(!token)return;
+      const socket=io(SOCK_URL,{auth:{token},transports:['websocket','polling']});
+      socket.on('new_registration',()=>{
+        loadPending();
+        addToast('New registration request received!','info');
+      });
+      socket.on('member_approved',()=>loadPending());
+      return()=>socket.disconnect();
+    }).catch(()=>{});
+  },[loadPending,addToast]);
+
+  const approve=async(id,name)=>{
+    setProcessing(id);
+    try{
+      await apiFetch(`/members/${id}/approve`,{method:'PATCH'});
+      setPending(prev=>prev.filter(m=>m._id!==id));
+      addToast(`✅ ${name} approved! Approval email sent.`,'success');
+      // Refresh global members list
+      try{const d=await apiFetch('/members');setMembers(d.members||[]);}catch(e){}
+    }catch(e){addToast(e.message||'Approval failed','error');}
+    setProcessing(null);
+  };
+
+  const reject=async()=>{
+    if(!rejectModal)return;
+    setProcessing(rejectModal._id);
+    try{
+      await apiFetch(`/members/${rejectModal._id}/reject`,{method:'PATCH',body:JSON.stringify({reason:rejectReason.trim()})});
+      setPending(prev=>prev.filter(m=>m._id!==rejectModal._id));
+      addToast(`${rejectModal.name}'s application rejected.`,'info');
+      setRejectModal(null);setRejectReason('');
+    }catch(e){addToast(e.message||'Rejection failed','error');}
+    setProcessing(null);
+  };
+
+  if(!auth?.isAdmin)return(
+    <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080'}}>
+      <Shield size={32} style={{marginBottom:12,opacity:.25}}/>
+      <p>Admin access required.</p>
+    </div>
+  );
+
+  return(
+    <div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div>
+          <div style={{fontFamily:'Fira Code,monospace',fontSize:10,color:'#fbbf24',letterSpacing:3,marginBottom:4}}>// ADMIN PANEL</div>
+          <h3 style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:18,color:'#dde6f0'}}>Pending Applications</h3>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          {pending.length>0&&<span style={{background:'rgba(251,191,36,.12)',border:'1px solid rgba(251,191,36,.25)',color:'#fbbf24',padding:'4px 12px',borderRadius:999,fontSize:12,fontWeight:700}}>{pending.length} pending</span>}
+          <button onClick={loadPending} style={{background:'transparent',border:'1px solid rgba(255,255,255,.08)',borderRadius:7,padding:'7px 12px',cursor:'pointer',color:'#6b87a8',display:'flex',alignItems:'center',gap:5,fontSize:11,fontFamily:'Outfit,sans-serif'}}><RefreshCw size={11}/>Refresh</button>
+        </div>
+      </div>
+
+      {loading?(
+        <div style={{textAlign:'center',padding:'40px 0'}}><div style={{width:32,height:32,borderRadius:'50%',border:'2px solid rgba(0,245,212,.2)',borderTopColor:'#00f5d4',animation:'spin .8s linear infinite',margin:'0 auto'}}/></div>
+      ):pending.length===0?(
+        <div style={{textAlign:'center',padding:'60px 0',color:'#4a6080',background:'rgba(0,245,212,.02)',border:'1px dashed rgba(0,245,212,.1)',borderRadius:12}}>
+          <Check size={32} style={{marginBottom:12,opacity:.3,color:'#10b981'}}/>
+          <p style={{fontSize:13}}>No pending applications. All caught up! ✅</p>
+        </div>
+      ):(
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          {pending.map(m=>(
+            <div key={m._id} className="card" style={{padding:20,borderColor:'rgba(251,191,36,.15)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
+                {/* Member info */}
+                <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:200}}>
+                  <Av name={m.name} size={46} src={m.avatar}/>
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,flexWrap:'wrap'}}>
+                      <span style={{fontSize:14,fontWeight:700,color:'#dde6f0'}}>{m.name}</span>
+                      <RoleBadge role={m.role}/>
+                      {m.isEmailVerified
+                        ? <span style={{fontSize:10,color:'#10b981',background:'rgba(16,185,129,.1)',padding:'2px 7px',borderRadius:4,fontWeight:600}}>✅ Email Verified</span>
+                        : <span style={{fontSize:10,color:'#f87171',background:'rgba(239,68,68,.1)',padding:'2px 7px',borderRadius:4,fontWeight:600}}>⚠️ Email Not Verified</span>
+                      }
+                    </div>
+                    <div style={{fontSize:11,color:'#4a6080',fontFamily:'Fira Code,monospace',marginBottom:4}}>{m.email}</div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                      {(m.skills||[]).slice(0,4).map(s=><span key={s} style={{fontSize:9,color:'#6b87a8',background:'rgba(0,245,212,.05)',border:'1px solid rgba(0,245,212,.1)',padding:'1px 6px',borderRadius:3,fontFamily:'Fira Code,monospace'}}>{s}</span>)}
+                    </div>
+                    {m.bio&&<p style={{fontSize:11,color:'#6b87a8',marginTop:5,lineHeight:1.5,maxWidth:400}}>{m.bio}</p>}
+                    <div style={{fontSize:10,color:'#4a6080',marginTop:5,fontFamily:'Fira Code,monospace'}}>
+                      Applied: {new Date(m.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{display:'flex',gap:9,alignItems:'center',flexShrink:0}}>
+                  {m.github&&<a href={m.github} target="_blank" rel="noreferrer" className="btn-sm" style={{background:'transparent',borderColor:'rgba(255,255,255,.1)',color:'#6b87a8',textDecoration:'none'}}><Github size={11}/>Profile</a>}
+                  <button
+                    onClick={()=>{setRejectModal(m);setRejectReason('');}}
+                    className="btn-sm"
+                    style={{background:'rgba(239,68,68,.08)',borderColor:'rgba(239,68,68,.25)',color:'#f87171'}}
+                    disabled={processing===m._id}
+                  >
+                    <X size={11}/>Reject
+                  </button>
+                  <button
+                    onClick={()=>approve(m._id,m.name)}
+                    className="btn-sm"
+                    style={{background:'rgba(16,185,129,.1)',borderColor:'rgba(16,185,129,.3)',color:'#10b981'}}
+                    disabled={processing===m._id}
+                  >
+                    {processing===m._id?<span className="spin-anim"/>:<Check size={11}/>}
+                    Approve
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal&&(
+        <div className="modal-overlay" onClick={()=>setRejectModal(null)}>
+          <div className="modal" style={{maxWidth:420}} onClick={e=>e.stopPropagation()}>
+            <div style={{marginBottom:20}}>
+              <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#f87171',marginBottom:6}}>Reject Application</div>
+              <p style={{fontSize:13,color:'#6b87a8'}}>Rejecting <strong style={{color:'#dde6f0'}}>{rejectModal.name}</strong>'s application. A rejection email will be sent to them.</p>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label className="label">Reason (optional)</label>
+              <textarea className="input" rows={3} placeholder="e.g. We are not looking for this role at the moment..." value={rejectReason} onChange={e=>setRejectReason(e.target.value)} style={{resize:'vertical'}}/>
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>setRejectModal(null)} className="btn-outline" style={{flex:1,justifyContent:'center',padding:'10px'}}>Cancel</button>
+              <button onClick={reject} style={{flex:1,padding:'10px',background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.28)',color:'#f87171',borderRadius:8,cursor:'pointer',fontFamily:'Outfit,sans-serif',fontSize:12,fontWeight:600,display:'flex',alignItems:'center',justifyContent:'center',gap:6}} disabled={processing===rejectModal._id}>
+                {processing===rejectModal._id?<span className="spin-anim"/>:<X size={12}/>}Reject & Notify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ══════════════════════════════════════════════════
    APP ROOT
 ══════════════════════════════════════════════════ */
@@ -1286,6 +1575,16 @@ export default function App(){
 
   useEffect(()=>{window.scrollTo({top:0,behavior:'smooth'});},[page]);
 
+  // Handle /verify URL on page load
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    if(params.get('token'))setPage('verify');
+    // Handle admin approve/reject from email link
+    const action=params.get('action');
+    const id=params.get('id');
+    if(action&&id&&auth?.isAdmin){setPage('management');}
+  },[auth]);
+
   const refreshMembers=useCallback(async()=>{
     try{const d=await apiFetch('/members');setMembers(d.members||[]);}catch(e){}
   },[]);
@@ -1296,7 +1595,8 @@ export default function App(){
     register:     <RegisterPage refreshMembers={refreshMembers} addToast={addToast}/>,
     achievements: <AchievementsPage/>,
     projects:     <ProjectsPage projects={projects} loading={loading}/>,
-    management:   <ManagementPage projects={projects} setProjects={setProjects} tasks={tasks} setTasks={setTasks} members={members} auth={auth} addToast={addToast}/>,
+    management:   <ManagementPage projects={projects} setProjects={setProjects} tasks={tasks} setTasks={setTasks} members={members} auth={auth} addToast={addToast} setMembers={setMembers}/>,
+    verify:       <EmailVerifyPage addToast={addToast}/>,
   };
 
   return(
