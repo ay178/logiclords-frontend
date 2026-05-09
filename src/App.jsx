@@ -4,7 +4,7 @@ import {
   Shield, Award, Calendar, Zap, Folder, Rocket, BarChart3, Trash2,
   Sparkles, Eye, EyeOff, Flag, ChevronUp, ChevronRight, ChevronDown,
   BarChart2, Layers, Info, Terminal, GitBranch, ExternalLink, RefreshCw,
-  MessageSquare, Send, Hash
+  MessageSquare, Send, Hash, Camera, Edit2, Save
 } from "lucide-react";
 
 const API_BASE  = 'https://logiclords-backend.onrender.com/api';
@@ -254,11 +254,173 @@ const HomePage=({setPage,members,projects})=>{
   );
 };
 
+
+/* ══════════════════════════════════════════════════
+   AVATAR UPLOAD COMPONENT
+══════════════════════════════════════════════════ */
+const AvatarUpload=({memberId,memberName,currentAvatar,onUpdate,addToast,size=80})=>{
+  const [uploading,setUploading]=useState(false);
+  const [preview,setPreview]=useState(currentAvatar||null);
+  const fileRef=useRef(null);
+
+  const handleFile=async(e)=>{
+    const file=e.target.files?.[0];
+    if(!file)return;
+    if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){
+      addToast('Only JPG, PNG, WebP or GIF allowed','error');return;
+    }
+    if(file.size>3*1024*1024){addToast('Image must be under 3MB','error');return;}
+    // Preview
+    const reader=new FileReader();
+    reader.onload=e=>setPreview(e.target.result);
+    reader.readAsDataURL(file);
+    if(!memberId){
+      // Just preview, no upload yet (for register form)
+      onUpdate&&onUpdate(file);
+      return;
+    }
+    // Upload
+    setUploading(true);
+    try{
+      const token=localStorage.getItem('ll_token');
+      const fd=new FormData();
+      fd.append('avatar',file);
+      const res=await fetch(`${API_BASE}/members/${memberId}/avatar`,{method:'POST',headers:{Authorization:`Bearer ${token}`},body:fd});
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||'Upload failed');
+      onUpdate&&onUpdate(data.avatarUrl);
+      addToast('Profile picture updated! 🎉','success');
+    }catch(e){
+      setPreview(currentAvatar||null);
+      addToast(e.message||'Upload failed','error');
+    }
+    setUploading(false);
+    e.target.value='';
+  };
+
+  const c=getAC(memberName||'?');
+  return(
+    <div style={{position:'relative',display:'inline-block',cursor:'pointer'}} onClick={()=>fileRef.current?.click()}>
+      {preview
+        ?<img src={preview} alt="avatar" style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`3px solid ${c}50`,display:'block'}}/>
+        :<div style={{width:size,height:size,borderRadius:'50%',background:`${c}18`,border:`3px solid ${c}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.33,fontWeight:700,color:c,fontFamily:'Orbitron,monospace'}}>{initls(memberName||'?')}</div>
+      }
+      {/* Hover overlay */}
+      <div className="av-overlay" style={{position:'absolute',inset:0,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,opacity:0,transition:'opacity .2s'}}
+        onMouseEnter={e=>e.currentTarget.style.opacity=1}
+        onMouseLeave={e=>e.currentTarget.style.opacity=0}>
+        {uploading
+          ?<div style={{width:18,height:18,borderRadius:'50%',border:'2px solid rgba(255,255,255,.3)',borderTopColor:'#fff',animation:'spin .8s linear infinite'}}/>
+          :<><Camera size={size>50?20:14} color="#fff"/><span style={{fontSize:9,color:'rgba(255,255,255,.8)',fontFamily:'Outfit,sans-serif'}}>Change</span></>
+        }
+      </div>
+      {/* Plus badge */}
+      <div style={{position:'absolute',bottom:0,right:0,width:size>50?26:18,height:size>50?26:18,borderRadius:'50%',background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid #030b1a',pointerEvents:'none'}}>
+        <Plus size={size>50?12:8} color="#030b1a" strokeWidth={3}/>
+      </div>
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{display:'none'}} onChange={handleFile}/>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════
+   PROFILE EDIT MODAL
+   Members can edit their own profile + change avatar
+══════════════════════════════════════════════════ */
+const ProfileEditModal=({member,auth,onClose,onSave,addToast})=>{
+  const [form,setForm]=useState({
+    name:     member.name||'',
+    bio:      member.bio||'',
+    skills:   (member.skills||[]).join(', '),
+    github:   member.github||'',
+    linkedin: member.linkedin||'',
+    role:     member.role||'Frontend',
+  });
+  const [avatar,setAvatar]=useState(member.avatar||null);
+  const [loading,setLoading]=useState(false);
+  const isOwn = String(auth?._id)===String(member._id);
+  if(!isOwn&&!auth?.isAdmin)return null;
+
+  const save=async()=>{
+    setLoading(true);
+    try{
+      const data=await apiFetch(`/members/${member._id}`,{
+        method:'PATCH',
+        body:JSON.stringify({
+          name:form.name.trim(),
+          bio:form.bio.trim(),
+          skills:form.skills.split(',').map(s=>s.trim()).filter(Boolean),
+          github:form.github.trim(),
+          linkedin:form.linkedin.trim(),
+          role:form.role,
+        }),
+      });
+      onSave&&onSave(data.member);
+      addToast('Profile updated!','success');
+      onClose();
+    }catch(e){addToast(e.message||'Update failed','error');}
+    setLoading(false);
+  };
+
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{maxWidth:500}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
+          <div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:15,color:'#dde6f0'}}>Edit Profile</div>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={17}/></button>
+        </div>
+
+        {/* Avatar section */}
+        <div style={{display:'flex',justifyContent:'center',marginBottom:24}}>
+          <div style={{textAlign:'center'}}>
+            <AvatarUpload
+              memberId={member._id}
+              memberName={form.name}
+              currentAvatar={avatar}
+              onUpdate={(url)=>setAvatar(`${API_BASE.replace('/api','')}${url}`)}
+              addToast={addToast}
+              size={90}
+            />
+            <p style={{fontSize:10,color:'#4a6080',marginTop:8,fontFamily:'Fira Code,monospace'}}>Click photo to change</p>
+          </div>
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div><label className="label">Name</label><input className="input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
+            <div><label className="label">Role</label>
+              <select className="input" value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}>
+                {['Frontend','Backend','AI/ML','Designer','DevOps','Full Stack','Mobile'].map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+          <div><label className="label">Bio</label><textarea className="input" rows={2} placeholder="Tell your story..." value={form.bio} onChange={e=>setForm(f=>({...f,bio:e.target.value}))} style={{resize:'vertical'}}/></div>
+          <div><label className="label">Skills (comma-separated)</label><input className="input" placeholder="React, Python, Figma..." value={form.skills} onChange={e=>setForm(f=>({...f,skills:e.target.value}))}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div><label className="label">GitHub</label>
+              <div style={{position:'relative'}}><Github size={12} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/>
+                <input className="input" style={{paddingLeft:30}} placeholder="github.com/you" value={form.github} onChange={e=>setForm(f=>({...f,github:e.target.value}))}/></div>
+            </div>
+            <div><label className="label">LinkedIn</label>
+              <div style={{position:'relative'}}><Linkedin size={12} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#4a6080'}}/>
+                <input className="input" style={{paddingLeft:30}} placeholder="linkedin.com/in/you" value={form.linkedin} onChange={e=>setForm(f=>({...f,linkedin:e.target.value}))}/></div>
+            </div>
+          </div>
+          <button onClick={save} className="btn-primary" style={{justifyContent:'center',padding:'12px'}} disabled={loading}>
+            {loading?<><span className="spin-anim"/>Saving...</>:<><Save size={13}/>Save Changes</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Team ── */
-const TeamPage=({members,loading})=>{
+const TeamPage=({members,setMembers,auth,loading,addToast})=>{
   const [q,setQ]=useState('');
   const [role,setRole]=useState('All');
   const [selected,setSelected]=useState(null);
+  const [editing,setEditing]=useState(null);
   const filtered=members.filter(m=>(role==='All'||m.role===role)&&(m.name||'').toLowerCase().includes(q.toLowerCase()));
   if(loading)return<div style={{paddingTop:100}}><Spinner/></div>;
   return(
@@ -292,10 +454,15 @@ const TeamPage=({members,loading})=>{
                 {m.bio&&<p style={{fontSize:12,color:'#6b87a8',marginBottom:14,lineHeight:1.6,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{m.bio}</p>}
                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:14}}>{(m.skills||[]).slice(0,5).map(s=><Chip key={s} label={s}/>)}</div>
                 <div style={{borderTop:'1px solid rgba(255,255,255,.05)',paddingTop:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span style={{fontSize:11,color:'#4a6080',fontFamily:'Fira Code,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}}>{m.email}</span>
-                  <div style={{display:'flex',gap:10}}>
+                  <span style={{fontSize:11,color:'#4a6080',fontFamily:'Fira Code,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140}}>{m.email}</span>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {m.github&&<a href={m.github} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{color:'#6b87a8',display:'flex',transition:'color .2s'}} onMouseEnter={e=>e.currentTarget.style.color='#00f5d4'} onMouseLeave={e=>e.currentTarget.style.color='#6b87a8'}><Github size={15}/></a>}
                     {m.linkedin&&<a href={m.linkedin} target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{color:'#6b87a8',display:'flex',transition:'color .2s'}} onMouseEnter={e=>e.currentTarget.style.color='#3b82f6'} onMouseLeave={e=>e.currentTarget.style.color='#6b87a8'}><Linkedin size={15}/></a>}
+                    {auth&&(auth._id===m._id||auth.isAdmin)&&(
+                      <button onClick={e=>{e.stopPropagation();setEditing(m);}} style={{background:'rgba(0,245,212,.07)',border:'1px solid rgba(0,245,212,.2)',borderRadius:5,padding:'3px 7px',cursor:'pointer',color:'#00f5d4',display:'flex',alignItems:'center',gap:3,fontSize:10}}>
+                        <Edit2 size={10}/>Edit
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -308,7 +475,15 @@ const TeamPage=({members,loading})=>{
           <div className="modal" style={{maxWidth:480}} onClick={e=>e.stopPropagation()}>
             <button onClick={()=>setSelected(null)} style={{position:'absolute',top:16,right:16,background:'none',border:'none',cursor:'pointer',color:'#6b87a8'}}><X size={18}/></button>
             <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
-              <Av name={selected.name} size={64} src={selected.avatar}/>
+              <div style={{position:'relative',flexShrink:0}}>
+                <Av name={selected.name} size={72} src={selected.avatar}/>
+                {auth&&(String(auth._id)===String(selected._id)||auth.isAdmin)&&(
+                  <div style={{position:'absolute',bottom:0,right:0,width:24,height:24,borderRadius:'50%',background:'linear-gradient(135deg,#00f5d4,#3b82f6)',display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid #050e22',cursor:'pointer'}}
+                    onClick={()=>{setSelected(null);setEditing(selected);}}>
+                    <Camera size={11} color="#030b1a"/>
+                  </div>
+                )}
+              </div>
               <div><div style={{fontFamily:'Orbitron,monospace',fontWeight:700,fontSize:18,color:'#dde6f0',marginBottom:6}}>{selected.name}</div><RoleBadge role={selected.role}/>{selected.isAdmin&&<span className="tag" style={{marginLeft:6,background:'rgba(0,245,212,.08)',color:'#00f5d4',border:'1px solid rgba(0,245,212,.2)'}}><Shield size={8} style={{marginRight:3}}/>Admin</span>}</div>
             </div>
             {selected.bio&&<p style={{fontSize:13,color:'#8a9bb8',lineHeight:1.75,marginBottom:18,background:'rgba(0,245,212,.03)',border:'1px solid rgba(0,245,212,.08)',borderRadius:8,padding:'12px 14px'}}>{selected.bio}</p>}
@@ -317,8 +492,26 @@ const TeamPage=({members,loading})=>{
               {selected.github&&<a href={selected.github} target="_blank" rel="noreferrer" className="btn-outline" style={{flex:1,justifyContent:'center',padding:'9px',fontSize:11}}><Github size={13}/>GitHub</a>}
               {selected.linkedin&&<a href={selected.linkedin} target="_blank" rel="noreferrer" className="btn-primary" style={{flex:1,justifyContent:'center',padding:'9px',fontSize:11}}><Linkedin size={13}/>LinkedIn</a>}
             </div>
+            {auth&&(String(auth._id)===String(selected._id)||auth.isAdmin)&&(
+              <button onClick={()=>{setSelected(null);setEditing(selected);}} className="btn-outline" style={{width:'100%',justifyContent:'center',padding:'9px',fontSize:11,marginTop:10,borderColor:'rgba(0,245,212,.25)',color:'#00f5d4'}}>
+                <Edit2 size={12}/>Edit Profile & Photo
+              </button>
+            )}
           </div>
         </div>
+      )}
+      {/* Profile Edit Modal */}
+      {editing&&(
+        <ProfileEditModal
+          member={editing}
+          auth={auth}
+          onClose={()=>setEditing(null)}
+          onSave={(updated)=>{
+            setMembers(prev=>prev.map(m=>m._id===updated._id?updated:m));
+            setEditing(null);
+          }}
+          addToast={addToast}
+        />
       )}
     </div>
   );
@@ -1591,7 +1784,7 @@ export default function App(){
 
   const pages={
     home:         <HomePage     setPage={setPage} members={members} projects={projects}/>,
-    team:         <TeamPage     members={members} loading={loading}/>,
+    team:         <TeamPage     members={members} setMembers={setMembers} auth={auth} loading={loading} addToast={addToast}/>,
     register:     <RegisterPage refreshMembers={refreshMembers} addToast={addToast}/>,
     achievements: <AchievementsPage/>,
     projects:     <ProjectsPage projects={projects} loading={loading}/>,
