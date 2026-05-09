@@ -1,3 +1,7 @@
+// LogicLords App v4.0 — Profile Pictures + Admin Approval + Email Verification
+// Features: Avatar Upload, ProfileEditModal, AdminApprovalPanel, EmailVerifyPage
+// Chat, GitHub Integration, Kanban, Analytics — All in one file
+// Last updated: 2025
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Github, Linkedin, Search, Plus, X, Check, Trophy, Users, LogIn, LogOut,
