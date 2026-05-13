@@ -2,8 +2,17 @@
  * LogicLords — Reusable UI Components
  * Import what you need: import { Av, RoleBadge, PBar } from './components/ui';
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Github, Linkedin, Check, X, Info, Bell, Shield } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://logiclords-backend.onrender.com/api';
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+
+const resolveAvatarUrl = src => {
+  if (!src) return null;
+  if (/^(blob:|data:|https?:\/\/)/i.test(src)) return src;
+  return `${API_ORIGIN}${src.startsWith('/') ? src : `/${src}`}`;
+};
 
 /* ── Colour maps ── */
 export const ROLE_COLORS = {
@@ -30,8 +39,11 @@ export const getInitials = (name = '') =>
 /* ── Avatar ── */
 export const Av = ({ name = '?', size = 44, src = null, style = {} }) => {
   const c = getAvatarColor(name);
-  if (src) return (
-    <img src={src} alt={name} style={{ width:size, height:size, borderRadius:'50%', objectFit:'cover', border:`2px solid ${c}40`, flexShrink:0, ...style }}/>
+  const [imgError, setImgError] = useState(false);
+  const avatarSrc = resolveAvatarUrl(src);
+  useEffect(() => setImgError(false), [avatarSrc]);
+  if (avatarSrc && !imgError) return (
+    <img src={avatarSrc} alt={name} onError={() => setImgError(true)} style={{ width:size, height:size, borderRadius:'50%', objectFit:'cover', border:`2px solid ${c}40`, flexShrink:0, ...style }}/>
   );
   return (
     <div style={{

@@ -13,6 +13,7 @@ import {
 
 const API_BASE  = 'https://logiclords-backend.onrender.com/api';
 const SOCK_URL  = 'https://logiclords-backend.onrender.com';
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
 
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap');
@@ -104,6 +105,11 @@ const AVC    = ['#6366f1','#ec4899','#f59e0b','#10b981','#00f5d4','#f87171','#8b
 const COLORS = ['#00f5d4','#3b82f6','#8b5cf6','#f472b6','#fbbf24','#f87171','#10b981','#ec4899'];
 const getAC  = n=>{let h=0;for(let c of n||'?')h=c.charCodeAt(0)+((h<<5)-h);return AVC[Math.abs(h)%AVC.length];};
 const initls = n=>(n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const resolveAvatarUrl = src => {
+  if (!src) return null;
+  if (/^(blob:|data:|https?:\/\/)/i.test(src)) return src;
+  return `${API_ORIGIN}${src.startsWith('/') ? src : `/${src}`}`;
+};
 const fmtTime = date=>{
   const d=new Date(date),now=new Date(),diff=now-d;
   if(diff<60000)return 'just now';
@@ -133,7 +139,10 @@ const apiFetch=async(path,options={})=>{
 /* ── Atoms ── */
 const Av=({name='?',size=44,src=null})=>{
   const c=getAC(name);
-  if(src)return<img src={src} alt={name} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
+  const [imgError,setImgError]=useState(false);
+  const avatarSrc = resolveAvatarUrl(src);
+  useEffect(()=>setImgError(false),[avatarSrc]);
+  if(avatarSrc&&!imgError)return<img src={avatarSrc} alt={name} onError={()=>setImgError(true)} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
   return<div style={{width:size,height:size,borderRadius:'50%',background:`${c}16`,border:`2px solid ${c}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.33,fontWeight:700,color:c,fontFamily:'Orbitron,monospace',flexShrink:0,letterSpacing:'-1px'}}>{initls(name)}</div>;
 };
 const RoleBadge=({role})=>{const c=RC[role]||{bg:'rgba(100,116,139,.15)',text:'#94a3b8',border:'rgba(100,116,139,.3)'};return<span className="tag" style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`}}>{role}</span>;};
@@ -264,7 +273,7 @@ const HomePage=({setPage,members,projects})=>{
 ══════════════════════════════════════════════════ */
 const AvatarUpload=({memberId,memberName,currentAvatar,onUpdate,addToast,size=80})=>{
   const [uploading,setUploading]=useState(false);
-  const [preview,setPreview]=useState(currentAvatar||null);
+  const [preview,setPreview]=useState(resolveAvatarUrl(currentAvatar));
   const fileRef=useRef(null);
 
   const handleFile=async(e)=>{
@@ -295,7 +304,7 @@ const AvatarUpload=({memberId,memberName,currentAvatar,onUpdate,addToast,size=80
       onUpdate&&onUpdate(data.avatarUrl);
       addToast('Profile picture updated! 🎉','success');
     }catch(e){
-      setPreview(currentAvatar||null);
+      setPreview(resolveAvatarUrl(currentAvatar));
       addToast(e.message||'Upload failed','error');
     }
     setUploading(false);
@@ -381,7 +390,7 @@ const ProfileEditModal=({member,auth,onClose,onSave,addToast})=>{
               memberId={member._id}
               memberName={form.name}
               currentAvatar={avatar}
-              onUpdate={(url)=>setAvatar(`${API_BASE.replace('/api','')}${url}`)}
+              onUpdate={(url)=>setAvatar(resolveAvatarUrl(url))}
               addToast={addToast}
               size={90}
             />

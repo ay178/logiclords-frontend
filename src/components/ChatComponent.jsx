@@ -13,6 +13,7 @@ import { Send, X, Trash2, Users, Circle, MessageSquare, Hash } from 'lucide-reac
 
 const API_BASE  = 'https://logiclords-backend.onrender.com/api';
 const SOCK_URL  = 'https://logiclords-backend.onrender.com';
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
 
 /* ── Role badge colors ── */
 const RC = {
@@ -28,10 +29,18 @@ const RC = {
 const AVC = ['#6366f1','#ec4899','#f59e0b','#10b981','#00f5d4','#f87171','#8b5cf6','#c084fc'];
 const getAC = n => { let h=0; for(let c of n||'?') h=c.charCodeAt(0)+((h<<5)-h); return AVC[Math.abs(h)%AVC.length]; };
 const initls = n => (n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const resolveAvatarUrl = src => {
+  if (!src) return null;
+  if (/^(blob:|data:|https?:\/\/)/i.test(src)) return src;
+  return `${API_ORIGIN}${src.startsWith('/') ? src : `/${src}`}`;
+};
 
 const Av = ({ name='?', size=32, src=null }) => {
   const c = getAC(name);
-  if (src) return <img src={src} alt={name} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
+  const [imgError, setImgError] = useState(false);
+  const avatarSrc = resolveAvatarUrl(src);
+  useEffect(() => setImgError(false), [avatarSrc]);
+  if (avatarSrc && !imgError) return <img src={avatarSrc} alt={name} onError={() => setImgError(true)} style={{width:size,height:size,borderRadius:'50%',objectFit:'cover',border:`2px solid ${c}40`,flexShrink:0}}/>;
   return (
     <div style={{width:size,height:size,borderRadius:'50%',background:`${c}18`,border:`2px solid ${c}35`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.33,fontWeight:700,color:c,fontFamily:'Orbitron,monospace',flexShrink:0,letterSpacing:'-1px'}}>
       {initls(name)}
